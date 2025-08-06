@@ -28,56 +28,66 @@ export const Avatar: React.FC<AvatarProps> = ({
   const [currentExpression, setCurrentExpression] = useState<AvatarExpression>('neutral');
   const [breathingPhase, setBreathingPhase] = useState(0);
   const [idleMovement, setIdleMovement] = useState({ x: 0, y: 0 });
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(true); // Start as true to avoid initial loading screen
   const videoRef = useRef<HTMLVideoElement>(null);
   const transitionTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Paths das imagens do avatar
-  const avatarImages = {
-    neutral: '/leap-avatar-neutro.png',
-    smiling: '/leap-avatar-sorrindo.png',
-    speaking: '/leap-avatar-falando.png'
-  };
-
-  // Paths dos vídeos - diferentes para intro e conversação
+  // Paths dos vídeos - agora com 3 estados
   const videoPaths = {
-    intro: '/leap-animated-hello.mp4',
-    conversation: '/video-loop-lea.mp4'
+    listening: '/lea-listening.mp4',        // Estado padrão - ouvindo/idle
+    intro: '/leap-animated-hello.mp4',      // Apresentação inicial
+    conversation: '/video-loop-lea.mp4'     // Falando/conversação
   };
   
-  // Seleciona vídeo baseado se é intro ou não
-  const currentVideoPath = isIntro ? videoPaths.intro : videoPaths.conversation;
-
-  // Preload das imagens e vídeo
-  useEffect(() => {
-    const imagePromises = Object.values(avatarImages).map(src => {
-      return new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => resolve(); // Continuar mesmo se uma imagem falhar
-        img.src = src;
-      });
-    });
-
-    Promise.all(imagePromises).then(() => {
-      setImagesLoaded(true);
-    });
-
-    // Preload do vídeo
-    if (videoRef.current) {
-      videoRef.current.addEventListener('loadeddata', () => {
-        setVideoLoaded(true);
-        console.log('🎥 Vídeo carregado e pronto');
-      });
-      
-      videoRef.current.addEventListener('error', (e) => {
-        console.error('❌ Erro ao carregar vídeo:', e);
-        setVideoLoaded(false);
-      });
+  // Sistema inteligente de seleção de vídeo
+  const getVideoPath = () => {
+    if (isSpeaking) {
+      const selectedPath = isIntro ? videoPaths.intro : videoPaths.conversation;
+      console.log(`🎬 LEA falando: ${isIntro ? 'intro' : 'conversação'} -> ${selectedPath}`);
+      return selectedPath;
     }
-  }, []);
+    // Padrão: sempre usa vídeo listening (substituindo imagem estática)
+    console.log(`👂 LEA em estado listening/idle -> ${videoPaths.listening}`);
+    return videoPaths.listening;
+  };
+  
+  const currentVideoPath = getVideoPath();
+
+  // Preload do vídeo com timeout de fallback
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (videoRef.current) {
+      const handleLoadedData = () => {
+        setVideoLoaded(true);
+        console.log('🎥 Vídeo carregado e pronto:', currentVideoPath);
+        clearTimeout(timeoutId);
+      };
+      
+      const handleError = (e: Event) => {
+        console.error('❌ Erro ao carregar vídeo:', e);
+        setVideoLoaded(true); // Continua mesmo com erro para não travar
+        clearTimeout(timeoutId);
+      };
+      
+      videoRef.current.addEventListener('loadeddata', handleLoadedData);
+      videoRef.current.addEventListener('error', handleError);
+      
+      // Timeout de 3 segundos para forçar carregamento caso o evento não dispare
+      timeoutId = setTimeout(() => {
+        console.log('⏰ Timeout do vídeo - forçando carregamento');
+        setVideoLoaded(true);
+      }, 3000);
+      
+      return () => {
+        if (videoRef.current) {
+          videoRef.current.removeEventListener('loadeddata', handleLoadedData);
+          videoRef.current.removeEventListener('error', handleError);
+        }
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [currentVideoPath]); // Recarrega quando vídeo muda
 
   // Sistema inteligente de seleção de expressão
   useEffect(() => {
@@ -96,43 +106,32 @@ export const Avatar: React.FC<AvatarProps> = ({
     setCurrentExpression(getExpressionForEmotion(emotion, isSpeaking));
   }, [emotion, isSpeaking]);
 
-  // Controle de transição vídeo/imagem sincronizado com áudio real
+  // Controle de transição entre diferentes vídeos
   useEffect(() => {
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current);
     }
 
-    if (isSpeaking) {
-      // Delay maior para aguardar o áudio começar de verdade
+    // Vídeo sempre visível - apenas muda o src
+    
+    if (videoRef.current) {
+      // Reinicia vídeo quando mudança de estado
+      videoRef.current.currentTime = 0;
+      
+      // Inicia reprodução com delay apropriado
+      const playDelay = isSpeaking ? 800 : 200; // Maior delay quando falando para sincronizar com áudio
+      
       transitionTimeoutRef.current = setTimeout(() => {
-        setShowVideo(true);
-        
-        if (videoRef.current) {
-          videoRef.current.currentTime = 0; // Reinicia do começo
-          videoRef.current.play().catch(e => {
-            console.error('Erro ao reproduzir vídeo:', e);
-            // Tenta novamente após um pequeno delay
-            setTimeout(() => {
-              videoRef.current?.play().catch(e2 => {
-                console.error('Segunda tentativa falhou:', e2);
-              });
-            }, 100);
-          });
-        }
-      }, 800); // Aguarda 800ms para o áudio começar de verdade
-    } else {
-      // Delay maior para manter vídeo até o áudio terminar completamente
-      transitionTimeoutRef.current = setTimeout(() => {
-        setShowVideo(false);
-        
-        if (videoRef.current) {
-          // Pausa o vídeo após a transição completar
+        videoRef.current?.play().catch(e => {
+          console.error('Erro ao reproduzir vídeo:', e);
+          // Retry após delay
           setTimeout(() => {
-            videoRef.current?.pause();
-            videoRef.current.currentTime = 0; // Volta ao início
-          }, 400); // Aguarda a transição CSS completar
-        }
-      }, 1000); // Delay de 1s após parar de falar (para sincronizar com fim do áudio)
+            videoRef.current?.play().catch(e2 => {
+              console.error('Segunda tentativa falhou:', e2);
+            });
+          }, 100);
+        });
+      }, playDelay);
     }
 
     return () => {
@@ -140,7 +139,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         clearTimeout(transitionTimeoutRef.current);
       }
     };
-  }, [isSpeaking]);
+  }, [isSpeaking, currentVideoPath]); // Adiciona currentVideoPath para reagir a mudanças de vídeo
 
   // Sistema de respiração realista
   useEffect(() => {
@@ -202,27 +201,24 @@ export const Avatar: React.FC<AvatarProps> = ({
   // Calcular animação de respiração realista
   const breathingScale = 1 + Math.sin(breathingPhase * Math.PI / 180) * 0.015;
 
-  // Determinar tamanho do avatar - versão expandida para vídeo maior
+  // Determinar tamanho do avatar - versão 100% vídeo
   const getAvatarSize = () => {
     switch (size) {
       case 'hero': return { 
-        container: 'w-[500px] h-[400px]', // Container retangular maior
-        image: 'w-96 h-96', // Imagem mantém círculo
+        container: 'w-full h-[600px]', // Container para vídeo grande
         video: 'w-full h-full', // Vídeo ocupa todo container
-        size: 500 
+        size: 600 
       };
       case 'large': return { 
-        container: 'w-80 h-64', 
-        image: 'w-64 h-64',
+        container: 'w-full h-80', 
         video: 'w-full h-full',
-        size: 256 
+        size: 320 
       };
       case 'normal':
       default: return { 
-        container: 'w-48 h-48',
-        image: 'w-48 h-48', 
+        container: 'w-full h-64',
         video: 'w-full h-full',
-        size: 192 
+        size: 256 
       };
     }
   };
@@ -230,12 +226,15 @@ export const Avatar: React.FC<AvatarProps> = ({
   const avatarSize = getAvatarSize();
   const avatarColors = getAvatarColor();
 
-  // Se as imagens ainda não carregaram, mostrar placeholder
-  if (!imagesLoaded) {
+  // Placeholder simplificado apenas para vídeo
+  if (!videoLoaded) {
     return (
       <div className={`relative ${avatarSize.container} mx-auto avatar-container`}>
-        <div className="absolute inset-0 rounded-2xl bg-gray-300 animate-pulse flex items-center justify-center">
-          <span className="text-gray-500 text-sm">Carregando...</span>
+        <div className="absolute inset-0 rounded-2xl bg-leap-surface/60 backdrop-blur-sm animate-pulse flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-2 border-leap-green-primary border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-leap-text-secondary text-sm">Carregando LEA...</span>
+          </div>
         </div>
       </div>
     );
@@ -274,28 +273,14 @@ export const Avatar: React.FC<AvatarProps> = ({
           repeat: isSpeaking ? Infinity : 0,
           ease: "easeInOut"
         }}
-      >
-        {/* Camada base: Imagem estática circular (sempre presente) */}
-        <img
-          src={avatarImages.neutral}
-          alt="Avatar neutro"
-          className={`absolute ${avatarSize.image} object-cover rounded-full`}
-          style={{
-            opacity: showVideo ? 0 : 1,
-            transition: 'opacity 400ms ease-in-out',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)'
-          }}
-        />
-        
-        {/* Camada overlay: Vídeo retangular maior (aparece quando falando) */}
+      >        
+        {/* Vídeo principal - agora sempre visível com 3 estados diferentes */}
         <video
           ref={videoRef}
           src={currentVideoPath}
           className={`absolute ${avatarSize.video} object-cover rounded-2xl`}
           style={{
-            opacity: showVideo ? 1 : 0,
+            opacity: 1, // Sempre visível
             transition: 'opacity 400ms ease-in-out',
             willChange: 'opacity',
             pointerEvents: 'none',

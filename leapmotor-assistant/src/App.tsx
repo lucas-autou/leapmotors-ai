@@ -292,48 +292,50 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-leap-dark">
-      {/* Header Premium com foco na IA */}
-      <header className="bg-gradient-to-r from-leap-dark via-gray-900 to-leap-dark border-b border-gray-700/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-leap-dark via-leap-surface to-leap-dark">
+      {/* Header Premium Compacto */}
+      <header className="bg-leap-surface/80 backdrop-blur-xl border-b border-leap-border">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-leap-green-500 to-leap-green-600 rounded-full flex items-center justify-center shadow-2xl ring-2 ring-leap-green-500/30">
-                  <span className="text-white font-bold text-3xl">L</span>
+                <div className="w-12 h-12 bg-gradient-to-br from-leap-green-primary to-leap-green-neon rounded-xl flex items-center justify-center shadow-lg animate-glow">
+                  <span className="text-white font-bold text-xl">L</span>
                 </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-leap-dark animate-pulse"></div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-leap-green-neon rounded-full animate-pulse"></div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Leapmotor Brasil</h1>
-                <p className="text-leap-green-400 text-lg font-medium">LEAP AI 3.0 • Recepção Digital Inteligente</p>
+                <h1 className="text-xl font-bold text-leap-text-primary">Leapmotor Brasil</h1>
+                <p className="text-leap-green-primary text-sm font-medium">LEAP AI 4.0 • Experiência Imersiva</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-4">
+            
+            <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm text-gray-400">Sistema de IA</p>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 font-medium text-sm">Neural Network Online</span>
+                  <div className="w-2 h-2 bg-leap-green-neon rounded-full animate-pulse"></div>
+                  <span className="text-leap-green-primary font-medium text-sm">IA Neural Ativa</span>
                 </div>
               </div>
-
-              <div className="px-4 py-2 bg-gradient-to-r from-leap-green-500/20 to-cyan-500/20 rounded-full border border-leap-green-500/30 backdrop-blur-sm">
-                <span className="text-leap-green-400 text-sm font-medium">🤖 IA Ativa</span>
+              
+              <div className="px-3 py-1 bg-leap-green-soft border border-leap-green-primary/30 rounded-full backdrop-blur-sm">
+                <span className="text-leap-green-primary text-sm font-medium">🤖 Online</span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content - Layout protagonista da IA */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left Column - IA PROTAGONISTA (3/5 = 60%) */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Hero Avatar Section */}
-            <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-3xl shadow-2xl p-8 border border-gray-700 relative overflow-hidden">
+      {/* Main Content - Layout Imersivo */}
+      <main className="container mx-auto px-6 py-4">
+        {/* Layout Imersivo com LEA como protagonista */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          
+          {/* LEA AVATAR - Protagonista da experiência */}
+          <div className="xl:col-span-1">
+            <div className="bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 relative overflow-hidden animate-fade-in">
+              {/* Efeito de fundo premium */}
+              <div className="absolute inset-0 bg-gradient-to-br from-leap-green-primary/5 via-transparent to-leap-green-neon/5"></div>
               {/* Neural network background */}
               <div className="absolute inset-0 opacity-10">
                 <svg width="100%" height="100%" viewBox="0 0 400 300">
@@ -358,56 +360,59 @@ function App() {
                 </svg>
               </div>
 
-              {/* Avatar Heroico */}
-              <div className="relative z-10 flex flex-col items-center">
+              {/* LEA Avatar - Protagonista Imersiva */}
+              <div className="relative z-10">
                 <Avatar
                   isSpeaking={isSpeaking}
                   emotion={avatarEmotion}
                   isListening={isListening}
                   isIdle={!isSpeaking && !isListening && !isThinking}
                   size="hero"
-                  isIntro={isIntroSpeech} // Passa a flag para o Avatar
+                  isIntro={isIntroSpeech}
                 />
 
-                {/* AI Status Premium */}
-                <div className="mt-6 text-center">
-                  <h2 className="text-3xl font-bold text-white mb-2">LEAP AI 3.0</h2>
-                  <p className="text-leap-green-400 text-lg font-medium mb-4">
-                    Sua Consultora Digital Inteligente
-                  </p>
-
-                  {/* Status dinâmico */}
-                  <div className="bg-black/40 rounded-full px-4 py-2 backdrop-blur-sm border border-gray-600">
-                    <p className="text-sm text-gray-300">
-                      {isThinking ? '🧠 Analisando sua pergunta...' :
-                       isSpeaking ? '🗣️ Falando com você...' :
-                       isListening ? '👂 Escutando atentamente...' :
-                       '💭 Pronta para ajudar você'}
+                {/* LEA Status Premium */}
+                <div className="mt-4 text-center space-y-3">
+                  <div>
+                    <h2 className="text-2xl font-bold text-leap-text-primary mb-1">LEA</h2>
+                    <p className="text-leap-green-primary text-sm font-medium">
+                      Consultora Digital Avançada
                     </p>
                   </div>
 
-                  {/* Intent e confiança */}
-                  <div className="mt-3 flex justify-center items-center gap-4 text-xs">
+                  {/* Status dinâmico premium */}
+                  <div className="bg-leap-surface/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-leap-border">
+                    <p className="text-sm text-leap-text-secondary">
+                      {isThinking ? '🧠 Pensando...' :
+                       isSpeaking ? '💬 Conversando' :
+                       isListening ? '👂 Escutando' :
+                       '✨ Pronta para ajudar'}
+                    </p>
+                  </div>
+
+                  {/* Mini indicadores */}
+                  <div className="flex justify-center items-center gap-3 text-xs">
                     <div className="flex items-center gap-1">
                       <div className={`w-2 h-2 rounded-full ${
                         isThinking ? 'bg-purple-400 animate-pulse' :
-                        isSpeaking ? 'bg-green-500 animate-pulse' :
+                        isSpeaking ? 'bg-leap-green-neon animate-pulse' :
                         isListening ? 'bg-cyan-400 animate-pulse' :
-                        'bg-gray-500'
+                        'bg-leap-border'
                       }`} />
-                      <span className="text-gray-400 capitalize">
+                      <span className="text-leap-text-muted capitalize">
                         {currentIntent.replace('_', ' ')}
                       </span>
                     </div>
-                    <div className="text-gray-500">•</div>
-                    <span className="text-gray-400">IA Neural Ativa</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Chat Interface Otimizado */}
-            <div className="h-[500px] bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
+          {/* CHAT INTERFACE - Expandida e Premium */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Chat Interface Premium */}
+            <div className="h-[600px] bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border animate-fade-in">
               <ChatInterface
                 messages={messages}
                 onSendMessage={handleSendMessage}
@@ -417,11 +422,14 @@ function App() {
                 onToggleSpeaking={handleToggleSpeaking}
               />
             </div>
-          </div>
 
-          {/* Right Column - Serviços Compactos (2/5 = 40%) */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* AI Insights Panel */}
+            {/* Painel de Serviços Premium */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ServiceOptions onSelectService={handleSelectService} />
+              <VehicleCards onSelectVehicle={handleSelectVehicle} />
+            </div>
+
+            {/* AI Insights Melhorado */}
             <AIInsights
               currentIntent={currentIntent}
               emotion={avatarEmotion}
@@ -430,25 +438,19 @@ function App() {
               isListening={isListening}
               messagesCount={messages.length}
             />
-
-            {/* Services Compactos */}
-            <ServiceOptions onSelectService={handleSelectService} />
-
-            {/* Vehicles Cards Menores */}
-            <VehicleCards onSelectVehicle={handleSelectVehicle} />
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-black text-white py-8 mt-16 border-t border-gray-800">
-        <div className="container mx-auto px-4">
+      {/* Footer Premium */}
+      <footer className="bg-leap-surface/80 backdrop-blur-xl border-t border-leap-border mt-8">
+        <div className="container mx-auto px-6 py-6">
           <div className="text-center">
-            <p className="text-sm text-gray-400">
-              © 2024 Leapmotor Brasil - Demo Técnico de Recepcionista Digital com IA
+            <p className="text-sm text-leap-text-secondary">
+              © 2024 Leapmotor Brasil - LEAP AI 4.0 Experiência Imersiva
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Desenvolvido para demonstração de conceito
+            <p className="text-xs text-leap-text-muted mt-1">
+              Powered by Advanced Neural Networks
             </p>
           </div>
         </div>
