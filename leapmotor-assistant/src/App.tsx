@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Mic } from 'lucide-react';
 import { Avatar, type AvatarEmotion } from './components/Avatar';
 import { ChatInterface } from './components/ChatInterface';
 import { VehicleCards } from './components/VehicleCards';
@@ -37,7 +38,7 @@ function App() {
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: 'Olá! Bem-vindo à Leapmotor! Eu sou a Lea, sua assistente virtual. Estou aqui para te ajudar com tudo que precisar!',
+      content: 'Olá! Bem-vindo à Leapmotor! Eu sou a Lea, sua recepcionista digital. Estou aqui para te ajudar com tudo que precisar!',
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
@@ -54,7 +55,7 @@ function App() {
     setIsPreparingToSpeak(true);
     setAvatarEmotion('thinking'); // Mostra estado de processamento
     setIsIntroSpeech(isIntro); // Define se é fala de intro
-    
+
     console.log('🎬 Preparando para falar - aguardando sincronização de áudio...');
 
     // Mapear emoção do avatar para opções de voz OpenAI
@@ -80,7 +81,7 @@ function App() {
       emotion: emotionMap[emotion],
       speed: 1.0, // Velocidade normal para naturalidade
       voice: 'shimmer' // Voz feminina suave e fluida
-    }, 
+    },
     // onEnd callback
     () => {
       // Delay maior para garantir que o vídeo continue até o fim do áudio
@@ -90,7 +91,7 @@ function App() {
         setIsIntroSpeech(false); // Sempre volta para modo conversação após qualquer fala
         console.log('🔇 Fala concluída - transição suave para imagem');
       }, 500); // Delay maior para sincronizar com fim real do áudio
-    }, 
+    },
     // onAudioStart callback - SINCRONIZAÇÃO PERFEITA!
     () => {
       // Fase 2: Áudio começou - agora sim mostra vídeo de fala
@@ -261,12 +262,14 @@ function App() {
     handleSendMessage(message);
   };
 
+  const [showCoffeeOptions, setShowCoffeeOptions] = useState(false);
+
   const handleSelectService = (service: string) => {
     let message = '';
     switch (service) {
       case 'coffee':
-        message = 'Gostaria de tomar um café enquanto conhecemos os veículos.';
-        break;
+        setShowCoffeeOptions(true);
+        return; // Não enviar mensagem ainda, mostrar opções primeiro
       case 'test-drive':
         message = 'Quero agendar um test-drive!';
         break;
@@ -278,15 +281,19 @@ function App() {
         break;
       case 'coffee-espresso':
         message = 'Vou querer um café expresso, por favor.';
+        setShowCoffeeOptions(false);
         break;
       case 'coffee-double-espresso':
         message = 'Um expresso duplo seria perfeito!';
+        setShowCoffeeOptions(false);
         break;
       case 'coffee-latte':
         message = 'Gostaria de um café com leite.';
+        setShowCoffeeOptions(false);
         break;
       case 'coffee-cappuccino':
         message = 'Um cappuccino, por favor.';
+        setShowCoffeeOptions(false);
         break;
       case 'eco-info':
         message = 'Quais são os benefícios ecológicos dos veículos Leapmotor?';
@@ -329,16 +336,14 @@ function App() {
             <header className="bg-leap-surface/80 backdrop-blur-xl border-b border-leap-border">
               <div className="container mx-auto px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center">
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-leap-green-primary to-leap-green-neon rounded-xl flex items-center justify-center shadow-lg animate-glow">
-                        <span className="text-white font-bold text-xl">L</span>
-                      </div>
+                      <img
+                        src="/logo-leapmotor.png"
+                        alt="Leapmotor Brasil"
+                        className="h-12 w-auto max-w-[140px] object-contain"
+                      />
                       <div className="absolute -top-1 -right-1 w-3 h-3 bg-leap-green-neon rounded-full animate-pulse"></div>
-                    </div>
-                    <div>
-                      <h1 className="text-xl font-bold text-leap-text-primary">Leapmotor Brasil</h1>
-                      <p className="text-leap-green-primary text-sm font-medium">LEAP AI 4.0 • Experiência Imersiva</p>
                     </div>
                   </div>
 
@@ -360,18 +365,18 @@ function App() {
 
             {/* Preview of main content */}
             <main className="container mx-auto px-6 py-4">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-1">
-                  <div className="bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 h-[600px] flex items-center justify-center">
+              <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-120px)]">
+                <div className="lg:w-[70%]">
+                  <div className="h-full bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 flex items-center justify-center">
                     <div className="text-center">
                       <div className="w-32 h-32 mx-auto bg-leap-green-primary/20 rounded-2xl mb-4"></div>
-                      <p className="text-leap-text-muted">LEA Avatar</p>
+                      <p className="text-leap-text-muted text-lg">LEA Avatar (Protagonista)</p>
                     </div>
                   </div>
                 </div>
-                <div className="xl:col-span-2">
-                  <div className="h-[600px] bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 flex items-center justify-center">
-                    <p className="text-leap-text-muted text-lg">Interface de Chat</p>
+                <div className="lg:w-[30%]">
+                  <div className="h-full bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 flex items-center justify-center">
+                    <p className="text-leap-text-muted">Chat Compacto</p>
                   </div>
                 </div>
               </div>
@@ -391,16 +396,14 @@ function App() {
       <header className="bg-leap-surface/80 backdrop-blur-xl border-b border-leap-border">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center">
               <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-leap-green-primary to-leap-green-neon rounded-xl flex items-center justify-center shadow-lg animate-glow">
-                  <span className="text-white font-bold text-xl">L</span>
-                </div>
+                <img
+                  src="/logo-leapmotor.png"
+                  alt="Leapmotor Brasil"
+                  className="h-12 w-auto max-w-[140px] object-contain"
+                />
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-leap-green-neon rounded-full animate-pulse"></div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-leap-text-primary">Leapmotor Brasil</h1>
-                <p className="text-leap-green-primary text-sm font-medium">LEAP AI 4.0 • Experiência Imersiva</p>
               </div>
             </div>
 
@@ -420,16 +423,19 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content - Layout Imersivo */}
+      {/* Main Content - Layout UX/UI Otimizado */}
       <main className="container mx-auto px-6 py-4">
-        {/* Layout Imersivo com LEA como protagonista */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Layout Premium: LEA Protagonista com Chat Integrado */}
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100vh-120px)]">
 
-          {/* LEA AVATAR - Protagonista da experiência */}
-          <div className="xl:col-span-1">
-            <div className="bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 relative overflow-hidden animate-fade-in">
-              {/* Efeito de fundo premium */}
-              <div className="absolute inset-0 bg-gradient-to-br from-leap-green-primary/5 via-transparent to-leap-green-neon/5"></div>
+          {/* SEÇÃO PRINCIPAL: LEA + CHAT INTEGRADO */}
+          <div className="flex-1 lg:w-[75%] flex flex-col space-y-3">
+
+            {/* LEA AVATAR - Protagonista Absoluta */}
+            <div className="flex-1 bg-leap-surface/70 backdrop-blur-xl rounded-2xl border border-leap-green-primary/20 relative overflow-hidden animate-fade-in shadow-2xl shadow-leap-green-primary/10">
+              {/* Efeito de fundo premium mais intenso */}
+              <div className="absolute inset-0 bg-gradient-to-br from-leap-green-primary/8 via-transparent to-leap-green-neon/8"></div>
+
               {/* Neural network background */}
               <div className="absolute inset-0 opacity-10">
                 <svg width="100%" height="100%" viewBox="0 0 400 300">
@@ -454,61 +460,87 @@ function App() {
                 </svg>
               </div>
 
-              {/* LEA Avatar - Protagonista Imersiva */}
-              <div className="relative z-10">
-                <Avatar
-                  isSpeaking={isSpeaking}
-                  emotion={avatarEmotion}
-                  isListening={isListening}
-                  isIdle={!isSpeaking && !isListening && !isThinking && !isPreparingToSpeak}
-                  size="hero"
-                  isIntro={isIntroSpeech}
-                />
+              {/* LEA Avatar Centralizada */}
+              <div className="relative z-10 h-full flex flex-col justify-center items-center">
+                <div className="w-full h-full relative">
+                  <Avatar
+                    isSpeaking={isSpeaking}
+                    emotion={avatarEmotion}
+                    isListening={isListening}
+                    isIdle={!isSpeaking && !isListening && !isThinking && !isPreparingToSpeak}
+                    size="hero"
+                    isIntro={isIntroSpeech}
+                  />
 
-                {/* LEA Status Premium */}
-                <div className="mt-4 text-center space-y-3">
-                  <div>
-                    <h2 className="text-2xl font-bold text-leap-text-primary mb-1">LEA</h2>
-                    <p className="text-leap-green-primary text-sm font-medium">
-                      Consultora Digital Avançada
-                    </p>
+                  {/* Status Dinâmico Discreto - Canto Superior Esquerdo */}
+                  <div className="absolute top-4 left-4 z-20">
+                    <div className="bg-black/20 backdrop-blur-sm rounded-full px-3 py-1 border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          isThinking ? 'bg-purple-400 animate-pulse' :
+                          isPreparingToSpeak ? 'bg-yellow-400 animate-pulse' :
+                          isSpeaking ? 'bg-leap-green-neon animate-pulse' :
+                          isListening ? 'bg-cyan-400 animate-pulse' :
+                          'bg-leap-green-primary'
+                        }`} />
+                        <span className="text-white/90 text-xs font-medium drop-shadow">
+                          {isThinking ? 'Pensando' :
+                           isPreparingToSpeak ? 'Preparando' :
+                           isSpeaking ? 'Falando' :
+                           isListening ? 'Ouvindo' :
+                           'Ativa'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Status dinâmico premium */}
-                  <div className="bg-leap-surface/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-leap-border">
-                    <p className="text-sm text-leap-text-secondary">
-                      {isThinking ? '🧠 Pensando...' :
-                       isPreparingToSpeak ? '🎙️ Preparando voz...' :
-                       isSpeaking ? '💬 Conversando' :
-                       isListening ? '👂 Escutando' :
-                       '✨ Pronta para ajudar'}
-                    </p>
-                  </div>
-
-                  {/* Mini indicadores */}
-                  <div className="flex justify-center items-center gap-3 text-xs">
-                    <div className="flex items-center gap-1">
-                      <div className={`w-2 h-2 rounded-full ${
-                        isThinking ? 'bg-purple-400 animate-pulse' :
-                        isPreparingToSpeak ? 'bg-yellow-400 animate-pulse' :
-                        isSpeaking ? 'bg-leap-green-neon animate-pulse' :
-                        isListening ? 'bg-cyan-400 animate-pulse' :
-                        'bg-leap-border'
-                      }`} />
-                      <span className="text-leap-text-muted capitalize">
+                  {/* Indicador de Contexto Minimalista - Canto Inferior Esquerdo */}
+                  <div className="absolute bottom-4 left-4 z-20">
+                    <div className="bg-black/15 backdrop-blur-sm rounded-full px-2 py-1 border border-white/10">
+                      <span className="text-white/70 text-xs font-medium capitalize drop-shadow">
                         {currentIntent.replace('_', ' ')}
                       </span>
                     </div>
                   </div>
+
+                  {/* Botão de Fala Central - Overlay Intuitivo */}
+                  <div className="absolute bottom-6 lg:bottom-8 left-1/2 transform -translate-x-1/2 z-30">
+                    <button
+                      onClick={handleToggleListening}
+                      className={`group relative p-3 lg:p-4 rounded-full transition-all duration-300 backdrop-blur-md border ${
+                        isListening
+                          ? 'bg-red-500/90 border-red-400/50 shadow-lg shadow-red-500/30 animate-pulse'
+                          : 'bg-black/30 border-white/20 hover:bg-black/40 hover:border-white/30 shadow-lg hover:scale-105'
+                      }`}
+                      title={isListening ? 'Parar gravação' : 'Falar com a LEA'}
+                    >
+                      <Mic size={20} className="lg:w-6 lg:h-6 text-white drop-shadow-lg" />
+
+                      {/* Onda visual quando ativo */}
+                      {isListening && (
+                        <div className="absolute inset-0 rounded-full border-2 border-red-400/50 animate-ping" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* LEA Identity Overlay - Elegant */}
+                  <div className="absolute bottom-4 right-4 z-20">
+                    <div className="bg-black/30 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20 shadow-lg">
+                      <div className="text-white text-sm font-semibold drop-shadow-lg">
+                        LEA
+                      </div>
+                      <div className="text-white/80 text-xs">
+                        Recepcionista Digital Leapmotor
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div>
-          </div>
 
-          {/* CHAT INTERFACE - Expandida e Premium */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Chat Interface Premium */}
-            <div className="h-[600px] bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border animate-fade-in">
+            {/* CHAT INTEGRADO - Fluindo da LEA */}
+            <div className="h-52 lg:h-64 bg-leap-surface/30 backdrop-blur-xl rounded-2xl border border-leap-green-primary/10 animate-fade-in shadow-lg shadow-leap-green-primary/5">
               <ChatInterface
                 messages={messages}
                 onSendMessage={handleSendMessage}
@@ -518,22 +550,139 @@ function App() {
                 onToggleSpeaking={handleToggleSpeaking}
               />
             </div>
+          </div>
 
-            {/* Painel de Serviços Premium */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ServiceOptions onSelectService={handleSelectService} />
-              <VehicleCards onSelectVehicle={handleSelectVehicle} />
+          {/* SIDEBAR DIREITA - Serviços e Veículos */}
+          <div className="w-full lg:w-[25%] flex flex-col space-y-4">
+            {/* Serviços Rápidos */}
+            <div className="bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-4">
+              <h3 className="text-leap-text-primary font-bold mb-4 text-center">Serviços</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Test-drive */}
+                <button
+                  onClick={() => handleSelectService('test-drive')}
+                  className="group bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 hover:border-leap-green-primary/40 rounded-lg p-3 text-white transition-all duration-200 hover:bg-gray-800/60"
+                >
+                  <div className="flex flex-col items-center space-y-1">
+                    <div className="text-xl opacity-80 group-hover:opacity-100 transition-opacity">🚗</div>
+                    <span className="font-medium text-xs text-gray-300 group-hover:text-white transition-colors">Test-drive</span>
+                  </div>
+                </button>
+
+                {/* Leap Café */}
+                <button
+                  onClick={() => handleSelectService('coffee')}
+                  className="group bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 hover:border-amber-500/40 rounded-lg p-3 text-white transition-all duration-200 hover:bg-gray-800/60"
+                >
+                  <div className="flex flex-col items-center space-y-1">
+                    <div className="text-xl opacity-80 group-hover:opacity-100 transition-opacity">☕</div>
+                    <span className="font-medium text-xs text-gray-300 group-hover:text-white transition-colors">Leap Café</span>
+                  </div>
+                </button>
+
+                {/* Consultor */}
+                <button
+                  onClick={() => handleSelectService('consultant')}
+                  className="group bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 hover:border-blue-500/40 rounded-lg p-3 text-white transition-all duration-200 hover:bg-gray-800/60"
+                >
+                  <div className="flex flex-col items-center space-y-1">
+                    <div className="text-xl opacity-80 group-hover:opacity-100 transition-opacity">👥</div>
+                    <span className="font-medium text-xs text-gray-300 group-hover:text-white transition-colors">Consultor</span>
+                  </div>
+                </button>
+
+                {/* Agendar */}
+                <button
+                  onClick={() => handleSelectService('schedule')}
+                  className="group bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 hover:border-purple-500/40 rounded-lg p-3 text-white transition-all duration-200 hover:bg-gray-800/60"
+                >
+                  <div className="flex flex-col items-center space-y-1">
+                    <div className="text-xl opacity-80 group-hover:opacity-100 transition-opacity">📅</div>
+                    <span className="font-medium text-xs text-gray-300 group-hover:text-white transition-colors">Agendar</span>
+                  </div>
+                </button>
+              </div>
             </div>
 
-            {/* AI Insights Melhorado */}
-            <AIInsights
-              currentIntent={currentIntent}
-              emotion={avatarEmotion}
-              isThinking={isThinking}
-              isSpeaking={isSpeaking}
-              isListening={isListening}
-              messagesCount={messages.length}
-            />
+            {/* Opções de Café Expandido */}
+            {showCoffeeOptions && (
+              <div className="bg-leap-surface/80 backdrop-blur-xl rounded-2xl border border-amber-500/30 p-4 animate-fade-in">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-leap-text-primary font-bold text-sm">Opções de Café</h3>
+                  <button
+                    onClick={() => setShowCoffeeOptions(false)}
+                    className="text-leap-text-muted hover:text-leap-text-primary"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleSelectService('coffee-espresso')}
+                    className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-700 to-amber-900 p-3 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                    <div className="relative z-10 flex flex-col items-center space-y-1">
+                      <div className="text-lg">☕</div>
+                      <span className="font-medium text-xs text-center">Expresso</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleSelectService('coffee-double-espresso')}
+                    className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-800 to-amber-900 p-3 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                    <div className="relative z-10 flex flex-col items-center space-y-1">
+                      <div className="text-sm">☕☕</div>
+                      <span className="font-medium text-xs text-center">Duplo</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleSelectService('coffee-latte')}
+                    className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 p-3 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                    <div className="relative z-10 flex flex-col items-center space-y-1">
+                      <div className="text-lg">🥛</div>
+                      <span className="font-medium text-xs text-center">C/ Leite</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleSelectService('coffee-cappuccino')}
+                    className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-700 to-amber-900 p-3 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                    <div className="relative z-10 flex flex-col items-center space-y-1">
+                      <div className="text-lg">☕</div>
+                      <span className="font-medium text-xs text-center">Cappuccino</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Veículos */}
+            <div className="flex-1 bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-4">
+              <h3 className="text-leap-text-primary font-bold mb-3 text-center">Nossos Veículos</h3>
+              <div className="max-h-[300px] overflow-y-auto">
+                <VehicleCards onSelectVehicle={handleSelectVehicle} />
+              </div>
+            </div>
+
+            {/* AI Insights */}
+            <div className="hidden lg:block bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-4">
+              <AIInsights
+                currentIntent={currentIntent}
+                emotion={avatarEmotion}
+                isThinking={isThinking}
+                isSpeaking={isSpeaking}
+                isListening={isListening}
+                messagesCount={messages.length}
+              />
+            </div>
           </div>
         </div>
       </main>

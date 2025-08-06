@@ -12,7 +12,6 @@ export const VehicleCards: React.FC<VehicleCardsProps> = ({ onSelectVehicle }) =
 
   return (
     <div className="w-full">
-      <h3 className="text-xl font-bold text-white mb-4">Nossos Veículos</h3>
       <div className="space-y-3">
         {vehicles.map((vehicle, index) => (
           <div

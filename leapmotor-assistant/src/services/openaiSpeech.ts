@@ -29,8 +29,8 @@ class OpenAISpeechService {
     'shimmer': { gender: 'female', tone: 'soft' }
   };
 
-  // Voz padrão para assistente feminina brasileira (shimmer é mais suave)
-  private currentVoice: VoiceConfig['name'] = 'shimmer';
+  // Voz padrão para assistente feminina brasileira (alloy é mais neutra e soa mais brasileira)
+  private currentVoice: VoiceConfig['name'] = 'alloy';
 
   initialize(apiKey?: string): boolean {
     if (!apiKey || apiKey === 'demo') {
@@ -106,6 +106,42 @@ class OpenAISpeechService {
       .trim();
   }
 
+  private optimizeTextForBrazilian(text: string): string {
+    // Otimizações para sotaque brasileiro - substituir termos técnicos e estrangeirismos
+    return text
+      // Termos automotivos
+      .replace(/\btest[\s-]*drive\b/gi, 'teste drive')
+      .replace(/\bSUV\b/gi, 'S-U-V')
+      .replace(/\bhatchback\b/gi, 'hatch')
+      .replace(/\bairbag\b/gi, 'airbágue')
+      .replace(/\bfeedback\b/gi, 'retorno')
+      .replace(/\bajudar\b/gi, 'ajudar')
+      // Marca e modelos
+      .replace(/\bLeapmotor\b/gi, 'Líip-mótor')
+      .replace(/\bLEAP\b/gi, 'Líp')
+      .replace(/\bT03\b/gi, 'T zero três')
+      .replace(/\bB10\b/gi, 'B dez')
+      .replace(/\bC10\b/gi, 'C dez')
+      // Unidades técnicas
+      .replace(/\bkWh\b/gi, 'quilowatt-hora')
+      .replace(/\bkm\/h\b/gi, 'quilômetros por hora')
+      .replace(/\bcv\b/gi, 'cavalos')
+      .replace(/\bWLTP\b/gi, 'W-L-T-P')
+      // Tecnologia
+      .replace(/\bemail\b/gi, 'e-mail')
+      .replace(/\bapp\b/gi, 'aplicativo')
+      .replace(/\bonline\b/gi, 'on-line')
+      .replace(/\bwifi\b/gi, 'wi-fi')
+      .replace(/\bsmartphone\b/gi, 'celular')
+      .replace(/\bokay\b/gi, 'ok')
+      .replace(/\bok\b/gi, 'ok')
+      // Números e medidas
+      .replace(/\b0-100\b/gi, 'zero a cem')
+      .replace(/\bR\$\s*(\d+)/gi, '$1 reais')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   private async speakWithOpenAI(text: string, options: SpeechOptions, onEnd?: () => void, onAudioStart?: () => void): Promise<void> {
     if (!this.client) return;
 
@@ -117,13 +153,17 @@ class OpenAISpeechService {
       const voice = this.selectVoiceForEmotion(options.emotion || 'neutral', options.voice);
       const speed = this.calculateSpeed(options);
 
-      console.log(`🎙️ OpenAI TTS: voz=${voice}, velocidade=${speed}, emoção=${options.emotion}`);
+      // Otimizar texto para pronúncia brasileira
+      const brazilianText = this.optimizeTextForBrazilian(text);
 
-      // Chamada para API OpenAI TTS
+      console.log(`🎙️ OpenAI TTS: voz=${voice}, velocidade=${speed}, emoção=${options.emotion}`);
+      console.log(`🇧🇷 Texto otimizado para brasileiro: "${brazilianText}"`);
+
+      // Chamada para API OpenAI TTS - usar tts-1 para velocidade máxima
       const mp3Response = await this.client.audio.speech.create({
-        model: 'tts-1', // Modelo mais rápido, tts-1-hd para qualidade máxima
+        model: 'tts-1', // Modelo mais rápido (vs tts-1-hd) para reduzir delay
         voice: voice,
-        input: text,
+        input: brazilianText,
         speed: speed,
         response_format: 'mp3'
       });
@@ -133,15 +173,16 @@ class OpenAISpeechService {
       const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(blob);
 
-      // Reproduzir áudio
+      // Reproduzir áudio com otimizações para velocidade máxima
       this.currentAudio = new Audio(audioUrl);
-      
+      this.currentAudio.preload = 'auto'; // Carregar imediatamente
+
       // Callback quando áudio efetivamente começa a tocar
       this.currentAudio.onplay = () => {
         console.log('🎵 Áudio OpenAI TTS começou a tocar - sincronizando vídeo');
         if (onAudioStart) onAudioStart();
       };
-      
+
       this.currentAudio.onended = () => {
         URL.revokeObjectURL(audioUrl); // Limpar memória
         this.currentAudio = null;
@@ -157,7 +198,12 @@ class OpenAISpeechService {
         if (onEnd) onEnd();
       };
 
-      await this.currentAudio.play();
+      // Reprodução imediata sem await para reduzir delay
+      this.currentAudio.play().catch(error => {
+        console.error('Erro ao iniciar áudio:', error);
+        if (onAudioStart) onAudioStart();
+        if (onEnd) onEnd();
+      });
       console.log('✅ OpenAI TTS iniciado - aguardando callback de sincronização');
 
     } catch (error) {
@@ -171,34 +217,34 @@ class OpenAISpeechService {
   private selectVoiceForEmotion(emotion: string, preferredVoice?: VoiceConfig['name']): VoiceConfig['name'] {
     if (preferredVoice) return preferredVoice;
 
-    // Mapeamento inteligente de emoções para vozes (usando shimmer como base mais fluida)
+    // Mapeamento inteligente de emoções para vozes (priorizando alloy como mais brasileira)
     const emotionToVoice: Record<string, VoiceConfig['name']> = {
       'excited': 'nova',      // Energética para animação
-      'happy': 'shimmer',     // Suave para alegria
-      'cheerful': 'shimmer',  // Suave para receptividade
-      'friendly': 'shimmer',  // Suave para conversa amigável
-      'concerned': 'shimmer', // Suave para preocupação
-      'neutral': 'shimmer'    // Suave para neutralidade
+      'happy': 'alloy',       // Balanceada para alegria
+      'cheerful': 'alloy',    // Balanceada para receptividade
+      'friendly': 'alloy',    // Balanceada para conversa amigável
+      'concerned': 'fable',   // Expressiva para preocupação
+      'neutral': 'alloy'      // Balanceada para neutralidade
     };
 
     return emotionToVoice[emotion] || 'alloy';
   }
 
   private calculateSpeed(options: SpeechOptions): number {
-    let baseSpeed = options.speed || 1.0;
-    
-    // Ajustar velocidade baseado na emoção
+    let baseSpeed = options.speed || 1.1; // Velocidade rápida por padrão
+
+    // Ajustar velocidade baseado na emoção (sempre rápido, mas com variações)
     const emotion = options.emotion || 'neutral';
     const emotionSpeedModifier: Record<string, number> = {
-      'excited': 1.1,     // Um pouco mais rápido para animação
-      'happy': 1.05,      // Ligeiramente mais rápido para alegria
-      'concerned': 0.9,   // Mais devagar para preocupação
-      'neutral': 1.0,     // Velocidade normal
-      'cheerful': 1.05,   // Ligeiramente mais rápido
-      'friendly': 1.0     // Velocidade normal
+      'excited': 1.2,     // Muito rápido para animação
+      'happy': 1.1,       // Rápido para alegria
+      'concerned': 1.1,   // Rápido mas um pouco mais devagar para preocupação
+      'neutral': 1.1,     // Rápido padrão
+      'cheerful': 1.1,   // Bem rápido para receptividade
+      'friendly': 1.1     // Rápido para cordialidade
     };
 
-    baseSpeed *= emotionSpeedModifier[emotion] || 1.0;
+    baseSpeed = emotionSpeedModifier[emotion] || 1.1;
 
     // Manter dentro dos limites da OpenAI (0.25 - 4.0)
     return Math.max(0.25, Math.min(4.0, baseSpeed));
@@ -217,25 +263,25 @@ class OpenAISpeechService {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
-    utterance.rate = options.speed || 0.95;
+    utterance.rate = options.speed || 1.3;
     utterance.pitch = options.pitch || 1.1;
     utterance.volume = 1.0;
 
     // Tentar usar voz feminina brasileira ou portuguesa fluida
     const voices = window.speechSynthesis.getVoices();
-    
+
     // Priorizar Joana (se disponível) ou outras vozes brasileiras/portuguesas femininas
-    const preferredVoice = voices.find(voice => 
+    const preferredVoice = voices.find(voice =>
       voice.name.toLowerCase().includes('joana')
-    ) || voices.find(voice => 
+    ) || voices.find(voice =>
       voice.lang === 'pt-BR' && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice => 
+    ) || voices.find(voice =>
       voice.lang === 'pt-BR' && voice.name.toLowerCase().includes('feminina')
-    ) || voices.find(voice => 
+    ) || voices.find(voice =>
       voice.lang === 'pt-BR'
-    ) || voices.find(voice => 
+    ) || voices.find(voice =>
       voice.lang === 'pt-PT' && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice => 
+    ) || voices.find(voice =>
       voice.lang === 'pt-PT'
     ) || voices[0];
 
@@ -314,13 +360,13 @@ class OpenAISpeechService {
   ): Promise<void> {
     try {
       console.log('🎤 Tentando usar OpenAI Whisper para reconhecimento...');
-      
+
       // Por enquanto, usar Web Speech como principal
       // OpenAI Whisper requer gravação de arquivo, mais complexo para tempo real
       // Implementação futura: gravar áudio e enviar para Whisper
-      
+
       this.startWebRecognition(onResult, onError, onEnd);
-      
+
     } catch (error) {
       console.error('Erro OpenAI Whisper:', error);
       this.startWebRecognition(onResult, onError, onEnd);

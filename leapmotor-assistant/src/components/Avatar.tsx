@@ -202,22 +202,22 @@ export const Avatar: React.FC<AvatarProps> = ({
   // Calcular animação de respiração realista
   const breathingScale = 1 + Math.sin(breathingPhase * Math.PI / 180) * 0.015;
 
-  // Determinar tamanho do avatar - versão 100% vídeo
+  // Determinar tamanho do avatar - versão 100% vídeo com aspect ratio horizontal
   const getAvatarSize = () => {
     switch (size) {
       case 'hero': return { 
-        container: 'w-full h-[600px]', // Container para vídeo grande
+        container: 'w-full aspect-video', // Usa aspect ratio 16:9 para vídeo horizontal
         video: 'w-full h-full', // Vídeo ocupa todo container
-        size: 600 
+        size: 700 
       };
       case 'large': return { 
-        container: 'w-full h-80', 
+        container: 'w-full aspect-video', // Aspect ratio 16:9
         video: 'w-full h-full',
         size: 320 
       };
       case 'normal':
       default: return { 
-        container: 'w-full h-64',
+        container: 'w-full aspect-video', // Aspect ratio 16:9
         video: 'w-full h-full',
         size: 256 
       };
@@ -242,94 +242,151 @@ export const Avatar: React.FC<AvatarProps> = ({
   }
 
   return (
-    <div className={`relative ${avatarSize.container} mx-auto avatar-container overflow-hidden`}>
-      {/* Glow effect premium */}
+    <div className={`relative ${avatarSize.container} w-full avatar-container overflow-hidden rounded-2xl`}>
+      {/* Glow effect premium mais intenso com estados imersivos */}
       <motion.div
-        className="absolute inset-0 rounded-full blur-2xl"
+        className="absolute inset-0 rounded-full blur-3xl"
         style={{
           background: avatarColors.glow,
-          transform: 'scale(1.2)'
+          transform: 'scale(1.3)'
         }}
         animate={{
-          opacity: isSpeaking ? [0.4, 0.8, 0.4] : isListening ? [0.2, 0.6, 0.2] : 0.3,
-          scale: isSpeaking ? [1.2, 1.4, 1.2] : [1.2, 1.3, 1.2],
+          opacity: isSpeaking ? [0.6, 1.0, 0.6] : 
+                   isListening ? [0.4, 0.8, 0.4] : 
+                   emotion === 'thinking' || emotion === 'processing' ? [0.3, 0.7, 0.3] :
+                   0.5,
+          scale: isSpeaking ? [1.3, 1.6, 1.3] : 
+                 isListening ? [1.3, 1.45, 1.3] : 
+                 emotion === 'excited' ? [1.3, 1.5, 1.3] :
+                 [1.3, 1.36, 1.3],
         }}
         transition={{
-          duration: isSpeaking ? 0.6 : 3,
+          duration: isSpeaking ? 0.4 : 
+                    isListening ? 1.2 : 
+                    emotion === 'excited' ? 0.8 :
+                    3,
           repeat: Infinity,
           ease: "easeInOut"
         }}
       />
 
-      {/* Avatar principal com vídeo e imagem */}
-      <motion.div
-        className="relative z-10 w-full h-full flex items-center justify-center"
+      {/* Breathing Light Ring - Efeito adicional quando idle */}
+      {!isSpeaking && !isListening && (
+        <motion.div
+          className="absolute inset-4 rounded-full border-2"
+          style={{
+            borderColor: avatarColors.glow.replace('40', '60'),
+          }}
+          animate={{
+            opacity: [0.2, 0.6, 0.2],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      )}
+
+      {/* Dual Video System Ocupando Toda Área */}
+      <motion.video
+        ref={videoRef1}
+        className="absolute inset-0 w-full h-full object-cover rounded-2xl z-10"
+        style={{
+          opacity: currentVideoIndex === 0 ? 1 : 0,
+          transition: 'opacity 600ms ease-in-out',
+          willChange: 'opacity',
+          pointerEvents: 'none',
+        }}
         animate={{
-          scale: isSpeaking ? [1, 1.05, 1] : breathingScale,
-          x: isIdle ? idleMovement.x : 0,
-          y: isIdle ? idleMovement.y : 0,
+          scale: isSpeaking ? [1, 1.02, 1] : breathingScale,
         }}
         transition={{
           duration: isSpeaking ? 0.4 : 4,
           repeat: isSpeaking ? Infinity : 0,
           ease: "easeInOut"
         }}
-      >        
-        {/* Dual Video System for Smooth Crossfading */}
-        <video
-          ref={videoRef1}
-          className={`absolute ${avatarSize.video} object-cover rounded-2xl`}
-          style={{
-            opacity: currentVideoIndex === 0 ? 1 : 0,
-            transition: 'opacity 600ms ease-in-out',
-            willChange: 'opacity',
-            pointerEvents: 'none',
-            zIndex: currentVideoIndex === 0 ? 2 : 1,
-          }}
-          loop
-          muted
-          playsInline
-          autoPlay={false}
-          preload="auto"
-        />
-        
-        <video
-          ref={videoRef2}
-          className={`absolute ${avatarSize.video} object-cover rounded-2xl`}
-          style={{
-            opacity: currentVideoIndex === 1 ? 1 : 0,
-            transition: 'opacity 600ms ease-in-out',
-            willChange: 'opacity',
-            pointerEvents: 'none',
-            zIndex: currentVideoIndex === 1 ? 2 : 1,
-          }}
-          loop
-          muted
-          playsInline
-          autoPlay={false}
-          preload="auto"
-        />
-      </motion.div>
+        loop
+        muted
+        playsInline
+        autoPlay={false}
+        preload="auto"
+      />
+      
+      <motion.video
+        ref={videoRef2}
+        className="absolute inset-0 w-full h-full object-cover rounded-2xl z-10"
+        style={{
+          opacity: currentVideoIndex === 1 ? 1 : 0,
+          transition: 'opacity 600ms ease-in-out',
+          willChange: 'opacity',
+          pointerEvents: 'none',
+        }}
+        animate={{
+          scale: isSpeaking ? [1, 1.02, 1] : breathingScale,
+        }}
+        transition={{
+          duration: isSpeaking ? 0.4 : 4,
+          repeat: isSpeaking ? Infinity : 0,
+          ease: "easeInOut"
+        }}
+        loop
+        muted
+        playsInline
+        autoPlay={false}
+        preload="auto"
+      />
 
 
       {/* Partículas flutuantes para emoções específicas */}
       {(emotion === 'excited' || emotion === 'happy' || emotion === 'surprised') && (
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(6)].map((_, i) => (
+        <div className="absolute inset-0 pointer-events-none z-20">
+          {[...Array(8)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 bg-white/60 rounded-full"
+              className="absolute w-1 h-1 bg-white/70 rounded-full shadow-lg"
               style={{
-                left: `${20 + i * 12}%`,
-                top: `${15 + (i % 3) * 25}%`,
+                left: `${15 + i * 10}%`,
+                top: `${10 + (i % 4) * 20}%`,
               }}
               animate={{
-                y: [-20, -40, -20],
+                y: [-25, -50, -25],
                 opacity: [0, 1, 0],
-                scale: [0.5, 1, 0.5],
+                scale: [0.3, 1.2, 0.3],
+                rotate: [0, 180, 360],
               }}
               transition={{
-                duration: 2 + i * 0.3,
+                duration: 2.5 + i * 0.3,
+                repeat: Infinity,
+                delay: i * 0.3,
+                ease: "easeInOut"
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Partículas douradas quando processando */}
+      {(emotion === 'thinking' || emotion === 'processing') && (
+        <div className="absolute inset-0 pointer-events-none z-20">
+          {[...Array(10)].map((_, i) => (
+            <motion.div
+              key={`thinking-${i}`}
+              className="absolute w-2 h-2 bg-yellow-400/80 rounded-full shadow-md"
+              style={{
+                left: `${10 + (i % 5) * 20}%`,
+                top: `${20 + Math.floor(i / 5) * 30}%`,
+              }}
+              animate={{
+                rotate: [0, 360],
+                scale: [0.5, 1, 0.5],
+                opacity: [0.3, 0.9, 0.3],
+                x: [0, Math.sin(i) * 20, 0],
+                y: [0, Math.cos(i) * 15, 0],
+              }}
+              transition={{
+                duration: 3 + i * 0.2,
                 repeat: Infinity,
                 delay: i * 0.4,
                 ease: "easeInOut"
@@ -339,59 +396,59 @@ export const Avatar: React.FC<AvatarProps> = ({
         </div>
       )}
 
-      {/* Ondas sonoras durante listening */}
+      {/* Ondas sonoras durante listening - mais imersivas */}
       {isListening && (
         <>
-          {[...Array(3)].map((_, i) => (
+          {[...Array(4)].map((_, i) => (
             <motion.div
-              key={i}
-              className="absolute inset-0 rounded-full border-2 border-cyan-400/40"
+              key={`listen-wave-${i}`}
+              className="absolute inset-0 rounded-2xl border-2 border-cyan-400/50 z-20"
               animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0, 0.6, 0]
+                scale: [1, 1.4 + i * 0.1, 1],
+                opacity: [0, 0.8, 0],
+                borderWidth: ['2px', '1px', '2px']
               }}
               transition={{
-                duration: 2,
+                duration: 2.5,
                 repeat: Infinity,
-                delay: i * 0.5,
+                delay: i * 0.4,
                 ease: "easeOut"
               }}
             />
           ))}
+          
+          {/* Pontos pulsantes de audio */}
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={`audio-dot-${i}`}
+                className="absolute w-2 h-2 bg-cyan-400 rounded-full"
+                style={{
+                  left: `${30 + i * 8}%`,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                }}
+                animate={{
+                  scale: [0.5, 1.5, 0.5],
+                  opacity: [0.3, 1, 0.3],
+                  y: [0, -10, 0]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </div>
         </>
       )}
 
-      {/* Voice waves durante speaking */}
-      {isSpeaking && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {[...Array(4)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute h-1 bg-white/30 rounded-full"
-              style={{
-                width: `${20 + i * 15}%`,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                top: `${45 + i * 3}%`
-              }}
-              animate={{
-                scaleX: [0.5, 1.5, 0.5],
-                opacity: [0.2, 0.8, 0.2],
-              }}
-              transition={{
-                duration: 0.8,
-                repeat: Infinity,
-                delay: i * 0.1,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-        </div>
-      )}
       
-      {/* Status indicator premium 3D */}
+      {/* Status indicator premium 3D - mais destacado */}
       <motion.div
-        className={`absolute -bottom-2 -right-2 w-6 h-6 rounded-full shadow-lg border-2 border-white ${
+        className={`absolute -bottom-3 -right-3 w-8 h-8 rounded-full shadow-xl border-3 border-white z-30 ${
           isSpeaking ? 'bg-green-500' : 
           isListening ? 'bg-cyan-500' :
           emotion === 'excited' ? 'bg-yellow-500' :
@@ -401,25 +458,25 @@ export const Avatar: React.FC<AvatarProps> = ({
         }`}
         animate={
           isSpeaking ? { 
-            scale: [1, 1.4, 1], 
-            opacity: [0.8, 1, 0.8],
-            boxShadow: ['0 0 10px rgba(34, 197, 94, 0.5)', '0 0 20px rgba(34, 197, 94, 0.8)', '0 0 10px rgba(34, 197, 94, 0.5)']
+            scale: [1, 1.6, 1], 
+            opacity: [0.9, 1, 0.9],
+            boxShadow: ['0 0 15px rgba(34, 197, 94, 0.6)', '0 0 30px rgba(34, 197, 94, 1)', '0 0 15px rgba(34, 197, 94, 0.6)']
           } : 
           isListening ? { 
-            scale: [1, 1.3, 1], 
-            opacity: [0.8, 1, 0.8],
-            boxShadow: ['0 0 10px rgba(6, 182, 212, 0.5)', '0 0 20px rgba(6, 182, 212, 0.8)', '0 0 10px rgba(6, 182, 212, 0.5)']
+            scale: [1, 1.4, 1], 
+            opacity: [0.9, 1, 0.9],
+            boxShadow: ['0 0 15px rgba(6, 182, 212, 0.6)', '0 0 30px rgba(6, 182, 212, 1)', '0 0 15px rgba(6, 182, 212, 0.6)']
           } :
-          { scale: [1, 1.15, 1], opacity: [0.8, 1, 0.8] }
+          { scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }
         }
         transition={{
-          duration: isSpeaking ? 0.4 : isListening ? 0.6 : 2,
+          duration: isSpeaking ? 0.3 : isListening ? 0.5 : 2,
           repeat: Infinity,
           ease: "easeInOut"
         }}
       >
-        {/* Inner glow */}
-        <div className="absolute inset-1 rounded-full bg-white/30" />
+        {/* Inner glow mais brilhante */}
+        <div className="absolute inset-1 rounded-full bg-white/40" />
       </motion.div>
 
       {/* Pensando indicator com 3 dots animados */}

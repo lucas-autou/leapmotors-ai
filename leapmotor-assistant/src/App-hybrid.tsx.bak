@@ -34,7 +34,7 @@ const SimpleChatInterface = ({ messages, onSendMessage, audioEnabled, onToggleAu
       setAvailableVoices(voices);
       setCurrentVoice(simpleSpeechService.getCurrentVoice());
     };
-    
+
     setTimeout(loadVoices, 1000);
     if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -71,7 +71,7 @@ const SimpleChatInterface = ({ messages, onSendMessage, audioEnabled, onToggleAu
               >
                 🎤 {currentVoice?.name.split(' ')[0] || 'Voz'}
               </button>
-              
+
               {showVoiceMenu && (
                 <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border z-50 min-w-48">
                   <div className="p-2">
@@ -95,7 +95,7 @@ const SimpleChatInterface = ({ messages, onSendMessage, audioEnabled, onToggleAu
           )}
         </div>
       </div>
-      
+
       <div className="flex-1 p-4 overflow-y-auto space-y-3">
         {messages.map((message, index) => (
           <div
@@ -151,7 +151,7 @@ function AppHybrid() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Olá! Bem-vindo à Leapmotor! 😊 Eu sou a LEAP AI, sua assistente virtual. Como posso ajudá-lo hoje?'
+      content: 'Olá! Bem-vindo à Leapmotor! 😊 Eu sou a LEAP AI, sua recepcionista digital. Como posso ajudá-lo hoje?'
     }
   ]);
   const [avatarEmotion, setAvatarEmotion] = useState('neutral');
@@ -165,7 +165,7 @@ function AppHybrid() {
         setIsSpeaking(true);
         setAvatarEmotion('happy');
         simpleSpeechService.speak(
-          'Olá! Bem-vindo à Leapmotor! Eu sou a LEAP AI, sua assistente virtual.',
+          'Olá! Bem-vindo à Leapmotor! Eu sou a LEAP AI, sua recepcionista digital.',
           () => {
             setIsSpeaking(false);
             setAvatarEmotion('neutral');
@@ -189,10 +189,10 @@ function AppHybrid() {
     try {
       // Get AI response
       const response = await aiService.getResponse(content, messages);
-      
+
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       setAvatarEmotion('happy');
-      
+
       // Speak response if audio is enabled
       if (audioEnabled && simpleSpeechService.isSupported()) {
         setIsSpeaking(true);
@@ -200,13 +200,13 @@ function AppHybrid() {
           setIsSpeaking(false);
         });
       }
-      
+
       setTimeout(() => setAvatarEmotion('neutral'), 2000);
     } catch (error) {
       console.error('Error getting AI response:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Desculpe, tive um problema. Mas posso ajudá-lo com informações sobre nossos veículos! 😊' 
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Desculpe, tive um problema. Mas posso ajudá-lo com informações sobre nossos veículos! 😊'
       }]);
       setAvatarEmotion('neutral');
     }
@@ -293,13 +293,13 @@ function AppHybrid() {
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-white">LEAP AI</h3>
                 <p className="text-green-400 text-sm">
-                  {isSpeaking ? 'Falando...' : 'Sua assistente virtual'}
+                  {isSpeaking ? 'Falando...' : 'Sua recepcionista digital'}
                 </p>
               </div>
             </div>
 
-            <SimpleChatInterface 
-              messages={messages} 
+            <SimpleChatInterface
+              messages={messages}
               onSendMessage={handleSendMessage}
               audioEnabled={audioEnabled}
               onToggleAudio={handleToggleAudio}
@@ -356,8 +356,8 @@ function AppHybrid() {
                     className="bg-white/10 backdrop-blur rounded-2xl overflow-hidden border border-white/20 hover:border-green-500/50 cursor-pointer transition-all hover:scale-105"
                   >
                     <div className="h-40 bg-gradient-to-br from-gray-700 to-gray-800 relative overflow-hidden">
-                      <img 
-                        src={vehicle.image} 
+                      <img
+                        src={vehicle.image}
                         alt={vehicle.name}
                         className="w-full h-full object-cover opacity-80"
                       />

@@ -3,7 +3,7 @@ class AIService {
   private demoResponses: { [key: string]: string[] } = {
     greeting: [
       'Oi, tudo bem? Bem-vindo à Leapmotor! Eu sou a Leap AI. Como posso te ajudar hoje?',
-      'Olá! Que bom te ver por aqui! Sou a assistente virtual da Leapmotor. No que posso ajudar?',
+      'Olá! Que bom te ver por aqui! Sou a recepcionista digital da Leapmotor. No que posso ajudar?',
       'E aí! Seja muito bem-vindo! Estou aqui pra falar sobre nossos carros elétricos incríveis!'
     ],
     vehicles: [
@@ -53,10 +53,10 @@ class AIService {
     await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
 
     const lowerMessage = message.toLowerCase();
-    
+
     // Determine response category
     let category = 'default';
-    
+
     if (lowerMessage.includes('olá') || lowerMessage.includes('oi') || lowerMessage.includes('bom dia') || lowerMessage.includes('boa tarde')) {
       category = 'greeting';
     } else if (lowerMessage.includes('veículo') || lowerMessage.includes('carro') || lowerMessage.includes('modelo')) {

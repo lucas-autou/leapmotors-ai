@@ -48,41 +48,56 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
-      {/* Header */}
-      <div className="bg-leap-green-500 p-4 rounded-t-2xl">
-        <h2 className="text-white text-xl font-semibold">LEAP AI</h2>
-        <p className="text-green-100 text-sm">Digite sua mensagem</p>
-      </div>
-
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex flex-col h-full bg-transparent rounded-2xl">
+      {/* Messages Container com Balões Imersivos - Integrado */}
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
         <AnimatePresence initial={false}>
           {messages.map((message) => (
             <motion.div
               key={message.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.95 }}
+              transition={{ duration: 0.4, type: "spring", stiffness: 120 }}
               className={`flex ${
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              <div
-                className={`max-w-[70%] p-4 rounded-2xl ${
-                  message.role === 'user'
-                    ? 'bg-leap-green-500 text-white'
-                    : 'bg-gray-700 text-gray-100 border border-gray-600'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <span className="text-xs opacity-70 mt-1 block">
-                  {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
+              <div className="relative max-w-[85%]">
+                {/* Balão de fala com seta - Integrado com LEA */}
+                <div
+                  className={`p-3 rounded-2xl relative shadow-md ${
+                    message.role === 'user'
+                      ? 'bg-gradient-to-r from-leap-green-primary to-leap-green-neon text-white'
+                      : 'bg-leap-surface/60 backdrop-blur-sm text-leap-text-primary border border-leap-green-primary/20'
+                  }`}
+                >
+                  {/* Seta do balão */}
+                  <div
+                    className={`absolute top-3 w-0 h-0 ${
+                      message.role === 'user'
+                        ? 'right-[-8px] border-l-[8px] border-l-leap-green-neon border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent'
+                        : 'left-[-8px] border-r-[8px] border-r-leap-surface/60 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent'
+                    }`}
+                  />
+                  
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  <span className={`text-xs mt-2 block ${
+                    message.role === 'user' ? 'opacity-60' : 'opacity-50 text-leap-text-muted'
+                  }`}>
+                    {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+                
+                {/* Avatar mini da LEA para suas mensagens */}
+                {message.role === 'assistant' && (
+                  <div className="absolute -left-2 top-0 w-6 h-6 bg-leap-green-primary/80 backdrop-blur-sm rounded-full flex items-center justify-center text-xs border border-leap-green-primary/30">
+                    🤖
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
@@ -90,20 +105,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-gray-700 p-4">
+      {/* Input Area Integrada - Sutil */}
+      <div className="border-t border-leap-border/30 p-3 backdrop-blur-sm">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
             onClick={onToggleListening}
-            className={`p-3 rounded-full transition-colors ${
+            className={`p-2 rounded-full transition-all duration-300 ${
               isListening
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                ? 'bg-red-500 text-white animate-pulse scale-105 shadow-lg shadow-red-500/50'
+                : 'bg-leap-green-primary/80 text-white hover:bg-leap-green-primary hover:scale-105 shadow-md shadow-leap-green-primary/20'
             }`}
-            title={isListening ? 'Parar gravação' : 'Iniciar gravação'}
+            title={isListening ? 'Parar gravação' : 'Falar com a LEA'}
           >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
 
           <input
@@ -111,30 +126,30 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Digite sua mensagem..."
-            className="flex-1 px-4 py-3 bg-gray-700 text-gray-100 placeholder-gray-400 rounded-full focus:outline-none focus:ring-2 focus:ring-leap-green-500 transition-all border border-gray-600"
+            placeholder={isListening ? "🎤 Fale com a LEA..." : "💬 Digite sua mensagem..."}
+            className="flex-1 px-3 py-2 bg-leap-surface/40 text-leap-text-primary placeholder-leap-text-muted/70 rounded-full focus:outline-none focus:ring-1 focus:ring-leap-green-primary/50 transition-all border border-leap-border/30 focus:border-leap-green-primary/60 text-sm backdrop-blur-sm"
             disabled={isListening}
           />
 
           <button
             type="submit"
             disabled={!inputValue.trim() || isListening}
-            className="p-3 bg-leap-green-500 text-white rounded-full hover:bg-leap-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 bg-leap-green-primary/80 text-white rounded-full hover:bg-leap-green-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
           >
-            <Send size={20} />
+            <Send size={14} />
           </button>
 
           <button
             type="button"
             onClick={onToggleSpeaking}
-            className={`p-3 rounded-full transition-colors ${
+            className={`p-2 rounded-full transition-all duration-300 ${
               isSpeaking
-                ? 'bg-leap-green-500 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                ? 'bg-leap-green-primary/80 text-white shadow-md shadow-leap-green-primary/20 scale-105'
+                : 'bg-leap-surface/60 text-leap-text-muted hover:bg-leap-surface/80 border border-leap-border/30 hover:scale-105'
             }`}
-            title={isSpeaking ? 'Desativar áudio' : 'Ativar áudio'}
+            title={isSpeaking ? 'Silenciar LEA' : 'Ativar voz da LEA'}
           >
-            {isSpeaking ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            {isSpeaking ? <Volume2 size={14} /> : <VolumeX size={14} />}
           </button>
         </form>
       </div>

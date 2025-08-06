@@ -10,10 +10,10 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
 
   const handleStart = () => {
     setIsStarting(true);
-    // Small delay to show animation before calling onStart
+    // Delay visual sutil para mostrar animação antes de chamar onStart
     setTimeout(() => {
       onStart();
-    }, 500);
+    }, 1500); // 1.5s para mostrar animação completa
   };
 
   return (
@@ -21,8 +21,11 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
       className="fixed inset-0 z-50 bg-leap-dark/95 backdrop-blur-xl flex items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{
+        duration: isStarting ? 0.8 : 0.3,
+        ease: "easeOut"
+      }}
     >
       <div className="container mx-auto px-6">
         <motion.div
@@ -34,7 +37,7 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
           {/* Logo/Avatar Premium */}
           <div className="mb-8">
             <motion.div
-              className="w-32 h-32 mx-auto bg-gradient-to-br from-leap-green-primary to-leap-green-neon rounded-3xl flex items-center justify-center shadow-2xl"
+              className="w-32 h-32 mx-auto bg-gradient-to-br from-leap-green-primary to-leap-green-neon rounded-3xl flex items-center justify-center shadow-2xl p-6"
               animate={{
                 scale: [1, 1.05, 1],
                 boxShadow: [
@@ -49,7 +52,11 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
                 ease: "easeInOut"
               }}
             >
-              <span className="text-white font-bold text-5xl">LEA</span>
+              <img
+                src="/logo-leapmotor.png"
+                alt="Leapmotor"
+                className="w-full h-full object-contain"
+              />
             </motion.div>
           </div>
 
@@ -67,7 +74,7 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
               </span>
             </h1>
             <p className="text-xl text-leap-text-secondary mb-2">
-              Sua assistente virtual inteligente está pronta!
+              Sua recepcionista digital inteligente está pronta!
             </p>
             <p className="text-sm text-leap-text-muted">
               Experiência imersiva com voz neural e inteligência emocional
@@ -121,7 +128,27 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
               {isStarting ? (
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Iniciando LEA...
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg">Conectando com a LEA...</span>
+                    <div className="flex gap-1 mt-1">
+                      {[...Array(3)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="w-2 h-2 bg-white rounded-full"
+                          animate={{
+                            opacity: [0.4, 1, 0.4],
+                            scale: [0.8, 1.2, 0.8],
+                          }}
+                          transition={{
+                            duration: 0.8,
+                            repeat: Infinity,
+                            delay: i * 0.2,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
@@ -130,7 +157,7 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ onStart }) => {
                 </div>
               )}
             </motion.button>
-            
+
             <p className="text-xs text-leap-text-muted mt-4 max-w-md mx-auto">
               Clique para ativar áudio e começar a conversar com a LEA
             </p>

@@ -1,7 +1,7 @@
-# Assistente Virtual Leapmotor v2.0 - CLAUDE.md
+# recepcionista digital Leapmotor v2.0 - CLAUDE.md
 
 ## 🎯 Visão Geral
-Este projeto é uma assistente virtual avançada com IA para a Leapmotor, apresentando a **LEAP AI v2.0** - um agente conversacional inteligente com avatar expressivo, reconhecimento de contexto emocional e síntese de voz neural. Capaz de conversar naturalmente com clientes, interpretar intenções, adaptar-se ao contexto conversacional e oferecer uma experiência verdadeiramente interativa.
+Este projeto é uma recepcionista digital avançada com IA para a Leapmotor, apresentando a **LEAP AI v2.0** - um agente conversacional inteligente com avatar expressivo, reconhecimento de contexto emocional e síntese de voz neural. Capaz de conversar naturalmente com clientes, interpretar intenções, adaptar-se ao contexto conversacional e oferecer uma experiência verdadeiramente interativa.
 
 ## 🤖 LEAP AI v2.0 - Nova Geração
 
@@ -57,7 +57,7 @@ Este projeto é uma assistente virtual avançada com IA para a Leapmotor, aprese
 ### Saudação Inicial
 ```
 "Olá! Bem-vindo à Leapmotor! 👋
-Eu sou a LEAP AI, sua assistente virtual.
+Eu sou a LEAP AI, sua recepcionista digital.
 Como posso ajudá-lo hoje?"
 ```
 
@@ -82,7 +82,7 @@ Posso pedir um para você?"
 ### Agendamento Test-Drive
 ```
 "Excelente! Nada melhor que sentir a experiência de dirigir um Leapmotor!
-Vou agendar seu test-drive. 
+Vou agendar seu test-drive.
 Qual modelo gostaria de experimentar?
 E qual o melhor horário para você?"
 ```
@@ -140,7 +140,7 @@ interface ConversationContext {
 
 ### System Prompt Avançado
 ```
-Você é a LEAP AI, uma assistente virtual avançada da Leapmotor no Brasil.
+Você é a LEAP AI, uma recepcionista digital avançada da Leapmotor no Brasil.
 Você é uma recepcionista digital especializada em veículos elétricos com inteligência emocional.
 
 PERSONALIDADE:
@@ -153,7 +153,7 @@ PERSONALIDADE:
 
 INTELIGÊNCIA CONTEXTUAL:
 - Lembre-se da conversa anterior
-- Reconheça padrões e intenções do usuário  
+- Reconheça padrões e intenções do usuário
 - Adapte respostas baseado no interesse demonstrado
 - Faça perguntas relevantes para entender necessidades
 - Seja proativa em sugerir próximos passos
@@ -192,7 +192,7 @@ VITE_OPENAI_API_KEY=sk-proj-sua_chave_openai_aqui
 
 # Isso é tudo! OpenAI fornece:
 # ✅ GPT-4 Turbo (IA Conversacional)
-# ✅ TTS Neural (Síntese de Voz)  
+# ✅ TTS Neural (Síntese de Voz)
 # ✅ Whisper STT (Reconhecimento - futuro)
 ```
 
@@ -208,7 +208,7 @@ VITE_OPENAI_API_KEY=sk-proj-sua_chave_openai_aqui
 
 ### Custos Estimados:
 - **IA**: ~$0.01 por conversa
-- **Voz**: ~$0.015 por minuto  
+- **Voz**: ~$0.015 por minuto
 - **Total mensal**: $5-15 (uso normal)
 
 ## 📱 Responsividade
@@ -272,7 +272,7 @@ O sistema deve funcionar perfeitamente em:
 
 ### 🚀 Migração OpenAI v2.0
 - ✅ **Simplicidade**: 1 chave vs 2 contas
-- ✅ **Performance**: Bundle 53% menor  
+- ✅ **Performance**: Bundle 53% menor
 - ✅ **Qualidade**: Vozes neurais premium
 - ✅ **Custo**: Setup mais barato
 - ✅ **Manutenção**: Muito mais simples

@@ -54,15 +54,20 @@ export const ServiceOptions: React.FC<ServiceOptionsProps> = ({ onSelectService 
           <button
             key={service.id}
             onClick={() => onSelectService(service.id)}
-            className="relative overflow-hidden rounded-xl p-3 text-white shadow-lg group bg-gray-800 border border-gray-700 h-20 hover:scale-105 transition-transform"
+            className="relative overflow-hidden rounded-2xl p-4 text-white shadow-2xl group bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-sm border border-gray-600/50 h-24 hover:scale-[1.02] hover:shadow-3xl transition-all duration-300 hover:border-gray-500/60"
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-70`} />
-            <div className="relative z-10 flex items-center gap-2">
-              <service.icon className="w-5 h-5 flex-shrink-0" />
-              <div className="text-left">
-                <h4 className="font-medium text-sm">{service.name}</h4>
+            <div className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-60 group-hover:opacity-80 transition-opacity duration-300`} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="relative z-10 flex items-center gap-3 h-full">
+              <div className="p-2 bg-white/10 rounded-xl backdrop-blur-sm group-hover:bg-white/20 transition-colors duration-300">
+                <service.icon className="w-6 h-6 flex-shrink-0" />
+              </div>
+              <div className="text-left flex-1">
+                <h4 className="font-semibold text-base leading-tight">{service.name}</h4>
+                <p className="text-xs text-gray-200/80 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">{service.description}</p>
               </div>
             </div>
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </button>
         ))}
       </div>

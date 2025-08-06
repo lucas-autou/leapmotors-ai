@@ -1,6 +1,6 @@
 # 🚗 Leapmotor - Recepcionista Digital com IA
 
-Demo técnico de uma assistente virtual conversacional para a Leapmotor, desenvolvida com React, TypeScript e integração com IA.
+Demo técnico de uma recepcionista digital conversacional para a Leapmotor, desenvolvida com React, TypeScript e integração com IA.
 
 ## 🎯 Funcionalidades
 
