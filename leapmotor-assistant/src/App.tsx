@@ -3,6 +3,7 @@ import { Avatar, type AvatarEmotion } from './components/Avatar';
 import { ChatInterface } from './components/ChatInterface';
 import { VehicleCards } from './components/VehicleCards';
 import { ServiceOptions } from './components/ServiceOptions';
+import { AIInsights } from './components/AIInsights';
 import { openAIService, type Intent } from './services/openai';
 import { openaiSpeechService } from './services/openaiSpeech';
 import type { Message, Vehicle } from './types';
@@ -59,8 +60,8 @@ function App() {
 
     openaiSpeechService.speak(text, {
       emotion: emotionMap[emotion],
-      speed: 0.95, // Velocidade otimizada para clareza
-      voice: 'nova' // Voz feminina energética por padrão
+      speed: 1.0, // Velocidade normal para naturalidade
+      voice: 'shimmer' // Voz feminina suave e fluida
     }, () => {
       setIsSpeaking(false);
       setAvatarEmotion('neutral');
@@ -80,7 +81,7 @@ function App() {
     
     // Set thinking state
     setIsThinking(true);
-    setAvatarEmotion('thinking');
+    setAvatarEmotion('processing');
     
     // Get AI response with enhanced context
     const conversationHistory = messages.map(m => ({
@@ -95,18 +96,18 @@ function App() {
       setCurrentIntent(aiResponse.intent);
       setIsThinking(false);
       
-      // Map intent to emotion
+      // Map intent to emotion - usando novos estados emocionais
       const intentToEmotion: Record<Intent, AvatarEmotion> = {
         'greeting': 'welcoming',
         'vehicle_inquiry': 'curious',
         'test_drive_request': 'excited',
-        'coffee_request': 'happy',
-        'consultant_request': 'happy',
-        'appointment_request': 'excited',
+        'coffee_request': 'satisfied',
+        'consultant_request': 'professional',
+        'appointment_request': 'confident',
         'financing_inquiry': 'concerned',
-        'sustainability_question': 'curious',
+        'sustainability_question': 'empathetic',
         'general_conversation': 'neutral',
-        'goodbye': 'happy'
+        'goodbye': 'satisfied'
       };
       
       const responseEmotion = intentToEmotion[aiResponse.intent] || 'neutral';
@@ -271,68 +272,121 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-leap-dark">
+      {/* Header Premium com foco na IA */}
+      <header className="bg-gradient-to-r from-leap-dark via-gray-900 to-leap-dark border-b border-gray-700/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-leap-green-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">L</span>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-leap-green-500 to-leap-green-600 rounded-full flex items-center justify-center shadow-2xl ring-2 ring-leap-green-500/30">
+                  <span className="text-white font-bold text-3xl">L</span>
+                </div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-leap-dark animate-pulse"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Leapmotor</h1>
-                <p className="text-sm text-gray-600">Recepção Digital com IA</p>
+                <h1 className="text-3xl font-bold text-white">Leapmotor Brasil</h1>
+                <p className="text-leap-green-400 text-lg font-medium">LEAP AI 3.0 • Recepção Digital Inteligente</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                Online
-              </span>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-400">Sistema de IA</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 font-medium text-sm">Neural Network Online</span>
+                </div>
+              </div>
+              
+              <div className="px-4 py-2 bg-gradient-to-r from-leap-green-500/20 to-cyan-500/20 rounded-full border border-leap-green-500/30 backdrop-blur-sm">
+                <span className="text-leap-green-400 text-sm font-medium">🤖 IA Ativa</span>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Avatar and Chat */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Avatar Card */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <Avatar 
-                isSpeaking={isSpeaking} 
-                emotion={avatarEmotion} 
-                isListening={isListening}
-                isIdle={!isSpeaking && !isListening && !isThinking}
-              />
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-semibold text-gray-800">LEAP AI v2.0</h3>
-                <p className="text-sm text-gray-600">
-                  {isThinking ? 'Pensando...' : 
-                   isSpeaking ? 'Falando...' :
-                   isListening ? 'Escutando...' :
-                   'Sua assistente virtual inteligente'}
-                </p>
-                {/* Status indicator adicional */}
-                <div className="mt-2 flex justify-center items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    isThinking ? 'bg-blue-400 animate-pulse' :
-                    isSpeaking ? 'bg-green-500 animate-pulse' :
-                    isListening ? 'bg-purple-500 animate-pulse' :
-                    'bg-gray-300'
-                  }`} />
-                  <span className="text-xs text-gray-500 capitalize">
-                    {currentIntent.replace('_', ' ')}
-                  </span>
+      {/* Main Content - Layout protagonista da IA */}
+      <main className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left Column - IA PROTAGONISTA (3/5 = 60%) */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Hero Avatar Section */}
+            <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-3xl shadow-2xl p-8 border border-gray-700 relative overflow-hidden">
+              {/* Neural network background */}
+              <div className="absolute inset-0 opacity-10">
+                <svg width="100%" height="100%" viewBox="0 0 400 300">
+                  <defs>
+                    <radialGradient id="nodeGradient" cx="50%" cy="50%">
+                      <stop offset="0%" stopColor="#00B74F" />
+                      <stop offset="100%" stopColor="transparent" />
+                    </radialGradient>
+                  </defs>
+                  {[...Array(12)].map((_, i) => (
+                    <circle
+                      key={i}
+                      cx={50 + (i % 4) * 100}
+                      cy={50 + Math.floor(i / 4) * 100}
+                      r="3"
+                      fill="url(#nodeGradient)"
+                    />
+                  ))}
+                  {/* Connection lines */}
+                  <path d="M 50 50 L 150 50 L 250 150 M 150 150 L 350 50" 
+                        stroke="#00B74F" strokeWidth="1" opacity="0.3" />
+                </svg>
+              </div>
+              
+              {/* Avatar Heroico */}
+              <div className="relative z-10 flex flex-col items-center">
+                <Avatar 
+                  isSpeaking={isSpeaking} 
+                  emotion={avatarEmotion} 
+                  isListening={isListening}
+                  isIdle={!isSpeaking && !isListening && !isThinking}
+                  size="hero"
+                />
+                
+                {/* AI Status Premium */}
+                <div className="mt-6 text-center">
+                  <h2 className="text-3xl font-bold text-white mb-2">LEAP AI 3.0</h2>
+                  <p className="text-leap-green-400 text-lg font-medium mb-4">
+                    Sua Consultora Digital Inteligente
+                  </p>
+                  
+                  {/* Status dinâmico */}
+                  <div className="bg-black/40 rounded-full px-4 py-2 backdrop-blur-sm border border-gray-600">
+                    <p className="text-sm text-gray-300">
+                      {isThinking ? '🧠 Analisando sua pergunta...' : 
+                       isSpeaking ? '🗣️ Falando com você...' :
+                       isListening ? '👂 Escutando atentamente...' :
+                       '💭 Pronta para ajudar você'}
+                    </p>
+                  </div>
+
+                  {/* Intent e confiança */}
+                  <div className="mt-3 flex justify-center items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        isThinking ? 'bg-purple-400 animate-pulse' :
+                        isSpeaking ? 'bg-green-500 animate-pulse' :
+                        isListening ? 'bg-cyan-400 animate-pulse' :
+                        'bg-gray-500'
+                      }`} />
+                      <span className="text-gray-400 capitalize">
+                        {currentIntent.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="text-gray-500">•</div>
+                    <span className="text-gray-400">IA Neural Ativa</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Chat Interface */}
-            <div className="h-[500px]">
+            {/* Chat Interface Otimizado */}
+            <div className="h-[500px] bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
               <ChatInterface
                 messages={messages}
                 onSendMessage={handleSendMessage}
@@ -344,19 +398,29 @@ function App() {
             </div>
           </div>
 
-          {/* Right Column - Services and Vehicles */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Services */}
+          {/* Right Column - Serviços Compactos (2/5 = 40%) */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* AI Insights Panel */}
+            <AIInsights
+              currentIntent={currentIntent}
+              emotion={avatarEmotion}
+              isThinking={isThinking}
+              isSpeaking={isSpeaking}
+              isListening={isListening}
+              messagesCount={messages.length}
+            />
+
+            {/* Services Compactos */}
             <ServiceOptions onSelectService={handleSelectService} />
 
-            {/* Vehicles */}
+            {/* Vehicles Cards Menores */}
             <VehicleCards onSelectVehicle={handleSelectVehicle} />
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-16">
+      <footer className="bg-black text-white py-8 mt-16 border-t border-gray-800">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <p className="text-sm text-gray-400">

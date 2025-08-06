@@ -46,82 +46,67 @@ export const ServiceOptions: React.FC<ServiceOptionsProps> = ({ onSelectService 
 
   return (
     <div className="w-full">
-      <h3 className="text-2xl font-bold text-gray-800 mb-6">Solicite um serviço</h3>
+      <h3 className="text-xl font-bold text-white mb-4">Solicite um serviço</h3>
       
-      {/* Main Services */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Main Services - Grid 2x2 compacto */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {services.map((service, index) => (
-          <motion.button
+          <button
             key={service.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={() => onSelectService(service.id)}
-            className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg group"
+            className="relative overflow-hidden rounded-xl p-3 text-white shadow-lg group bg-gray-800 border border-gray-700 h-20 hover:scale-105 transition-transform"
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${service.color}`} />
-            <div className="relative z-10">
-              <service.icon className="w-10 h-10 mb-3 mx-auto" />
-              <h4 className="font-semibold text-lg mb-2">{service.name}</h4>
-              <p className="text-sm opacity-90">{service.description}</p>
+            <div className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-70`} />
+            <div className="relative z-10 flex items-center gap-2">
+              <service.icon className="w-5 h-5 flex-shrink-0" />
+              <div className="text-left">
+                <h4 className="font-medium text-sm">{service.name}</h4>
+              </div>
             </div>
-            <motion.div
-              className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"
-            />
-          </motion.button>
+          </button>
         ))}
       </div>
 
-      {/* Coffee Options */}
-      <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-2xl p-6">
-        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Coffee className="w-5 h-5 text-amber-600" />
+      {/* Coffee Options - Compacto */}
+      <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-4">
+        <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <Coffee className="w-4 h-4 text-leap-green-500" />
           Opções de Café
         </h4>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {coffeeOptions.map((coffee) => (
-            <motion.button
+            <button
               key={coffee.id}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => onSelectService(`coffee-${coffee.id}`)}
-              className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-gray-700 rounded-lg p-2 shadow hover:shadow-lg transition-shadow border border-gray-600 hover:border-leap-green-500/30 text-center hover:scale-105 transition-all"
             >
-              <div className="text-4xl mb-2">{coffee.image}</div>
-              <p className="text-sm text-gray-700">{coffee.name}</p>
-            </motion.button>
+              <div className="text-lg mb-1">{coffee.image}</div>
+              <p className="text-xs text-gray-300">{coffee.name}</p>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-6 flex flex-wrap gap-3 justify-center">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+      {/* Quick Actions - Pills menores */}
+      <div className="flex flex-wrap gap-2">
+        <button
           onClick={() => onSelectService('eco-info')}
-          className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-medium shadow-lg"
+          className="px-3 py-1 bg-leap-green-500 hover:bg-leap-green-600 text-white rounded-full text-xs font-medium shadow hover:scale-105 transition-all"
         >
-          🌱 Benefícios Ecológicos
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          🌱 Ecológicos
+        </button>
+        <button
           onClick={() => onSelectService('financing')}
-          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full font-medium shadow-lg"
+          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-full text-xs font-medium shadow border border-gray-600 hover:scale-105 transition-all"
         >
-          💰 Opções de Financiamento
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          💰 Financiamento
+        </button>
+        <button
           onClick={() => onSelectService('warranty')}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full font-medium shadow-lg"
+          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-full text-xs font-medium shadow border border-gray-600 hover:scale-105 transition-all"
         >
-          🛡️ Garantia e Suporte
-        </motion.button>
+          🛡️ Garantia
+        </button>
       </div>
     </div>
   );

@@ -25,12 +25,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Só fazer scroll se há mensagens e se não é a primeira renderização
+    if (messages.length > 1) {
+      // Pequeno delay para garantir que a mensagem foi renderizada
+      const timer = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]); // Só dependente do length, não do array completo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +48,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-2xl shadow-xl">
+    <div className="flex flex-col h-full bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
       {/* Header */}
-      <div className="bg-gradient-to-r from-leap-green-500 to-leap-green-600 p-4 rounded-t-2xl">
-        <h2 className="text-white text-xl font-semibold">LEAP AI - Assistente Virtual</h2>
-        <p className="text-green-100 text-sm">Online e pronta para ajudar</p>
+      <div className="bg-leap-green-500 p-4 rounded-t-2xl">
+        <h2 className="text-white text-xl font-semibold">LEAP AI</h2>
+        <p className="text-green-100 text-sm">Digite sua mensagem</p>
       </div>
 
       {/* Messages Container */}
@@ -66,7 +73,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 className={`max-w-[70%] p-4 rounded-2xl ${
                   message.role === 'user'
                     ? 'bg-leap-green-500 text-white'
-                    : 'bg-gray-100 text-gray-800'
+                    : 'bg-gray-700 text-gray-100 border border-gray-600'
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -84,7 +91,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-700 p-4">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
@@ -92,7 +99,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             className={`p-3 rounded-full transition-colors ${
               isListening
                 ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
             }`}
             title={isListening ? 'Parar gravação' : 'Iniciar gravação'}
           >
@@ -105,7 +112,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Digite sua mensagem..."
-            className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-leap-green-500 transition-all"
+            className="flex-1 px-4 py-3 bg-gray-700 text-gray-100 placeholder-gray-400 rounded-full focus:outline-none focus:ring-2 focus:ring-leap-green-500 transition-all border border-gray-600"
             disabled={isListening}
           />
 
@@ -123,7 +130,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             className={`p-3 rounded-full transition-colors ${
               isSpeaking
                 ? 'bg-leap-green-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
             }`}
             title={isSpeaking ? 'Desativar áudio' : 'Ativar áudio'}
           >

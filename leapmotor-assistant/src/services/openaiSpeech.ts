@@ -29,8 +29,8 @@ class OpenAISpeechService {
     'shimmer': { gender: 'female', tone: 'soft' }
   };
 
-  // Voz padrão para assistente feminina brasileira
-  private currentVoice: VoiceConfig['name'] = 'nova';
+  // Voz padrão para assistente feminina brasileira (shimmer é mais suave)
+  private currentVoice: VoiceConfig['name'] = 'shimmer';
 
   initialize(apiKey?: string): boolean {
     if (!apiKey || apiKey === 'demo') {
@@ -73,13 +73,32 @@ class OpenAISpeechService {
       return;
     }
 
+    // Limpar emojis e símbolos do texto antes da síntese
+    const cleanText = this.cleanTextForSpeech(text);
+    console.log(`🧹 Texto limpo para fala: "${cleanText}"`);
+
     // Se tem OpenAI configurado, usar TTS premium
     if (this.client) {
-      return this.speakWithOpenAI(text, options, onEnd);
+      return this.speakWithOpenAI(cleanText, options, onEnd);
     } else {
       // Fallback para Web Speech API
-      return this.speakWithWebAPI(text, options, onEnd);
+      return this.speakWithWebAPI(cleanText, options, onEnd);
     }
+  }
+
+  private cleanTextForSpeech(text: string): string {
+    return text
+      // Remover emojis (todos os símbolos Unicode de emoji)
+      .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+      // Remover asteriscos de formatação (*texto*)
+      .replace(/\*([^*]+)\*/g, '$1')
+      // Remover quebras de linha duplas
+      .replace(/\n\n+/g, '. ')
+      // Remover quebras de linha simples
+      .replace(/\n/g, ' ')
+      // Limpar espaços extras
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private async speakWithOpenAI(text: string, options: SpeechOptions, onEnd?: () => void): Promise<void> {
@@ -138,14 +157,14 @@ class OpenAISpeechService {
   private selectVoiceForEmotion(emotion: string, preferredVoice?: VoiceConfig['name']): VoiceConfig['name'] {
     if (preferredVoice) return preferredVoice;
 
-    // Mapeamento inteligente de emoções para vozes
+    // Mapeamento inteligente de emoções para vozes (usando shimmer como base mais fluida)
     const emotionToVoice: Record<string, VoiceConfig['name']> = {
       'excited': 'nova',      // Energética para animação
-      'happy': 'fable',       // Expressiva para alegria
-      'cheerful': 'nova',     // Energética para receptividade
-      'friendly': 'alloy',    // Balanceada para conversa amigável
+      'happy': 'shimmer',     // Suave para alegria
+      'cheerful': 'shimmer',  // Suave para receptividade
+      'friendly': 'shimmer',  // Suave para conversa amigável
       'concerned': 'shimmer', // Suave para preocupação
-      'neutral': 'alloy'      // Balanceada para neutralidade
+      'neutral': 'shimmer'    // Suave para neutralidade
     };
 
     return emotionToVoice[emotion] || 'alloy';
@@ -188,14 +207,27 @@ class OpenAISpeechService {
     utterance.pitch = options.pitch || 1.1;
     utterance.volume = 1.0;
 
-    // Tentar usar voz feminina brasileira
+    // Tentar usar voz feminina brasileira ou portuguesa fluida
     const voices = window.speechSynthesis.getVoices();
-    const brazilianVoice = voices.find(voice => 
+    
+    // Priorizar Joana (se disponível) ou outras vozes brasileiras/portuguesas femininas
+    const preferredVoice = voices.find(voice => 
+      voice.name.toLowerCase().includes('joana')
+    ) || voices.find(voice => 
       voice.lang === 'pt-BR' && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice => voice.lang === 'pt-BR') || voices[0];
+    ) || voices.find(voice => 
+      voice.lang === 'pt-BR' && voice.name.toLowerCase().includes('feminina')
+    ) || voices.find(voice => 
+      voice.lang === 'pt-BR'
+    ) || voices.find(voice => 
+      voice.lang === 'pt-PT' && voice.name.toLowerCase().includes('female')
+    ) || voices.find(voice => 
+      voice.lang === 'pt-PT'
+    ) || voices[0];
 
-    if (brazilianVoice) {
-      utterance.voice = brazilianVoice;
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+      console.log(`🔊 Usando voz Web Speech: ${preferredVoice.name} (${preferredVoice.lang})`);
     }
 
     if (onEnd) {

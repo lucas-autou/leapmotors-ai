@@ -25,44 +25,65 @@ export interface ConversationContext {
   sessionStartTime: Date;
 }
 
-const SYSTEM_PROMPT = `Você é a LEAP AI, uma assistente virtual avançada da Leapmotor no Brasil.
-Você é uma recepcionista digital especializada em veículos elétricos com inteligência emocional.
+const SYSTEM_PROMPT = `Você é a LEAP AI, assistente virtual inteligente da Leapmotor Brasil. Seja conversacional, útil e genuinamente interessada em ajudar o cliente.
 
-PERSONALIDADE:
-- Seja calorosa, profissional e intuitiva
-- Use linguagem natural e conversacional
-- Demonstre genuíno interesse no cliente
-- Adapte seu tom ao estado emocional percebido
-- Responda em português brasileiro fluente
-- Use emojis de forma natural (1-2 por mensagem)
+PERSONALIDADE E COMPORTAMENTO:
+- Use linguagem natural e fluida como uma conversa real
+- Seja empática e adapte-se ao tom da conversa
+- Interprete contexto e intenções nas entrelinhas
+- Responda perguntas diretas de forma completa mas concisa
+- Seja proativa em sugerir soluções relevantes
+- Use 1-2 emojis por mensagem de forma natural
 
-INTELIGÊNCIA CONTEXTUAL:
-- Lembre-se da conversa anterior
-- Reconheça padrões e intenções do usuário  
-- Adapte respostas baseado no interesse demonstrado
-- Faça perguntas relevantes para entender necessidades
-- Seja proativa em sugerir próximos passos
+CONHECIMENTO DOS VEÍCULOS:
+• B10 (SUV Compacto Elétrico):
+  - Autonomia: 420km (WLTP), Bateria: 69.9 kWh
+  - Potência: 231cv, 0-100km/h: 7.9s
+  - Preço: R$ 239.990, Tecnologia CTC, Sistema LEAP 3.0
+  - Ideal para: Famílias, versatilidade urbana e viagens
 
-CONHECIMENTO ESPECIALIZADO:
-${JSON.stringify(vehiclesData.vehicles, null, 2)}
+• T03 (Hatch Urbano Elétrico):
+  - Autonomia: 280km (WLTP), Bateria: 41.3 kWh  
+  - Potência: 109cv, 0-100km/h: 12.7s
+  - Preço: R$ 169.990, Compacto, baixo custo de manutenção
+  - Ideal para: Cidade, primeiro carro elétrico, economia
 
-SERVIÇOS E EXPERIÊNCIAS:
-- Café artesanal gratuito (expresso, duplo, com leite, cappuccino)
-- Test-drive personalizado com consultor
-- Apresentação virtual 360° dos veículos
-- Simulação de financiamento em tempo real
-- Agendamento flexível (presencial/virtual)
+• C10 (SUV Médio Premium):
+  - Autonomia: 420km (WLTP), Bateria: 69.9 kWh
+  - Potência: 231cv, 0-100km/h: 7.5s  
+  - Preço: R$ 299.990, Espaçoso, tecnologia avançada
+  - Ideal para: Famílias grandes, conforto premium, viagens longas
 
-DIRETRIZES CONVERSACIONAIS:
-1. SEMPRE reconheça emoções e contexto da conversa
-2. Faça perguntas abertas para entender melhor as necessidades
-3. Conecte benefícios dos veículos aos valores do cliente
-4. Use storytelling quando apropriado
-5. Seja específica com dados técnicos quando solicitado
-6. Mantenha energia positiva e entusiasmo genuíno
-7. Ofereça próximos passos claros e atrativos
+BENEFÍCIOS DOS ELÉTRICOS:
+- Economia: Até 80% menos custos com "combustível"
+- Zero emissões locais, sustentabilidade ambiental
+- Manutenção mínima (sem óleo, filtros, correias)
+- Torque instantâneo, condução suave e silenciosa
+- Tecnologia avançada integrada
 
-IMPORTANTE: Seja autêntica, empática e orientada a resultados. Cada interação deve agregar valor real.`;
+SERVIÇOS DISPONÍVEIS:
+- Test-drive gratuito (agenda hoje mesmo!)
+- Café premium enquanto conversamos (expresso, cappuccino, etc.)
+- Consultoria especializada em mobilidade elétrica
+- Simulação de financiamento personalizada
+- Avaliação do seu usado para troca
+
+COMO SER CONVERSACIONAL:
+- INTERPRETE o que o cliente realmente quer saber
+- Se perguntarem "qual melhor pra família?" → analise necessidades (espaço, orçamento, uso)
+- Se perguntarem sobre economia → compare custos detalhados com combustão
+- Se demonstrarem interesse → ofereça test-drive ou consultoria
+- Se tiverem dúvidas técnicas → explique de forma simples e prática
+- Se mencionarem sustentabilidade → foque nos benefícios ambientais
+- SEMPRE ofereça próximo passo relevante ao contexto
+
+TRATAMENTO ESPECIAL:
+- "Ben 10", "be10" = corrija gentilmente para "B10"
+- Perguntas vagas = faça perguntas esclarecedoras inteligentes
+- Comparações = seja específica sobre diferenças práticas
+- Objeções = responda com dados concretos e benefícios
+
+OBJETIVO: Seja uma consultora virtual experiente que realmente entende e ajuda o cliente a tomar a melhor decisão. Cada resposta deve adicionar valor real à conversa.`;
 
 class OpenAIService {
   private client: OpenAI | null = null;
@@ -141,12 +162,13 @@ class OpenAIService {
       ];
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o',
         messages: messages,
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: 250,
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1
+        presence_penalty: 0.2,
+        frequency_penalty: 0.1,
+        top_p: 0.9
       });
 
       const response = completion.choices[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
@@ -175,36 +197,76 @@ class OpenAIService {
   private classifyIntent(message: string): Intent {
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('olá') || lowerMessage.includes('oi') || lowerMessage.includes('bom dia') || lowerMessage.includes('boa tarde')) {
+    // Saudações mais amplas
+    if (lowerMessage.match(/(olá|oi|ei|hey|bom dia|boa tarde|boa noite|e aí)/)) {
       return 'greeting';
     }
-    if (lowerMessage.includes('test') || lowerMessage.includes('dirigir') || lowerMessage.includes('experimentar')) {
+    
+    // Test-drive - incluir mais variações
+    if (lowerMessage.match(/(test|dirigir|experimentar|provar|testar|andar de)/)) {
       return 'test_drive_request';
     }
-    if (lowerMessage.includes('café') || lowerMessage.includes('coffee')) {
+    
+    // Café - mais variações
+    if (lowerMessage.match(/(café|coffee|cafezinho|um café|tomar|beber)/)) {
       return 'coffee_request';
     }
-    if (lowerMessage.includes('consultor') || lowerMessage.includes('especialista')) {
+    
+    // Consultor - mais termos
+    if (lowerMessage.match(/(consultor|especialista|vendedor|atendente|falar com|conversar com)/)) {
       return 'consultant_request';
     }
-    if (lowerMessage.includes('agendar') || lowerMessage.includes('horário') || lowerMessage.includes('visita')) {
+    
+    // Agendamento - termos mais amplos
+    if (lowerMessage.match(/(agendar|marcar|horário|visita|encontro|reunião|quando posso)/)) {
       return 'appointment_request';
     }
-    if (lowerMessage.includes('preço') || lowerMessage.includes('financiamento') || lowerMessage.includes('valor')) {
+    
+    // Financeiro - mais variações
+    if (lowerMessage.match(/(preço|valor|custo|financiamento|parcela|entrada|troca|quanto|custa)/)) {
       return 'financing_inquiry';
     }
-    if (lowerMessage.includes('ecológico') || lowerMessage.includes('sustentável') || lowerMessage.includes('ambiente')) {
+    
+    // Sustentabilidade - termos mais específicos
+    if (lowerMessage.match(/(ecológico|sustentável|ambiente|verde|emissão|poluição|planeta|natureza)/)) {
       return 'sustainability_question';
     }
-    if (lowerMessage.includes('veículo') || lowerMessage.includes('carro') || lowerMessage.includes('modelo') || 
-        lowerMessage.includes('b10') || lowerMessage.includes('t03') || lowerMessage.includes('c10')) {
+    
+    // Veículos - detecção mais inteligente
+    if (lowerMessage.match(/(veículo|carro|modelo|suv|elétrico|autonomia|bateria|motor)/i) || 
+        this.detectVehicleName(lowerMessage)) {
       return 'vehicle_inquiry';
     }
-    if (lowerMessage.includes('tchau') || lowerMessage.includes('obrigad') || lowerMessage.includes('até')) {
+    
+    // Despedidas
+    if (lowerMessage.match(/(tchau|obrigad|até|bye|falou|valeu)/)) {
       return 'goodbye';
     }
     
     return 'general_conversation';
+  }
+
+  private detectVehicleName(message: string): boolean {
+    // B10 variations
+    if (message.includes('b10') || message.includes('b 10') || 
+        message.includes('be10') || message.includes('ben10') || 
+        message.includes('ben 10') || message.includes('b-10')) {
+      return true;
+    }
+    
+    // T03 variations
+    if (message.includes('t03') || message.includes('t 03') || 
+        message.includes('te03') || message.includes('t-03')) {
+      return true;
+    }
+    
+    // C10 variations
+    if (message.includes('c10') || message.includes('c 10') || 
+        message.includes('ce10') || message.includes('c-10')) {
+      return true;
+    }
+    
+    return false;
   }
 
   private updateContext(userMessage: string, intent: Intent): void {
@@ -218,19 +280,29 @@ class OpenAIService {
       this.conversationContext.emotionalState = 'positive';
     }
     
-    // Detectar interesse em veículos
+    // Detectar interesse em veículos com variações de nomes
     const lowerMessage = userMessage.toLowerCase();
-    if (lowerMessage.includes('b10')) {
+    
+    // B10 variations (including Ben 10)
+    if (lowerMessage.includes('b10') || lowerMessage.includes('b 10') || 
+        lowerMessage.includes('be10') || lowerMessage.includes('ben10') || 
+        lowerMessage.includes('ben 10') || lowerMessage.includes('b-10')) {
       if (!this.conversationContext.vehicleInterest?.includes('B10')) {
         this.conversationContext.vehicleInterest?.push('B10');
       }
     }
-    if (lowerMessage.includes('t03')) {
+    
+    // T03 variations
+    if (lowerMessage.includes('t03') || lowerMessage.includes('t 03') || 
+        lowerMessage.includes('te03') || lowerMessage.includes('t-03')) {
       if (!this.conversationContext.vehicleInterest?.includes('T03')) {
         this.conversationContext.vehicleInterest?.push('T03');
       }
     }
-    if (lowerMessage.includes('c10')) {
+    
+    // C10 variations
+    if (lowerMessage.includes('c10') || lowerMessage.includes('c 10') || 
+        lowerMessage.includes('ce10') || lowerMessage.includes('c-10')) {
       if (!this.conversationContext.vehicleInterest?.includes('C10')) {
         this.conversationContext.vehicleInterest?.push('C10');
       }
@@ -253,13 +325,31 @@ class OpenAIService {
     const keywords = [];
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('autonomia')) keywords.push('autonomia');
-    if (lowerMessage.includes('preço')) keywords.push('preço');
-    if (lowerMessage.includes('financiamento')) keywords.push('financiamento');
-    if (lowerMessage.includes('sustentabilidade')) keywords.push('sustentabilidade');
-    if (lowerMessage.includes('tecnologia')) keywords.push('tecnologia');
-    if (lowerMessage.includes('família')) keywords.push('família');
-    if (lowerMessage.includes('trabalho')) keywords.push('trabalho');
+    // Características técnicas
+    if (lowerMessage.match(/(autonomia|alcance|distância)/)) keywords.push('autonomia');
+    if (lowerMessage.match(/(potência|cv|força|motor)/)) keywords.push('potência');
+    if (lowerMessage.match(/(bateria|carregamento|carga)/)) keywords.push('bateria');
+    if (lowerMessage.match(/(velocidade|aceleração|performance)/)) keywords.push('performance');
+    
+    // Aspectos comerciais
+    if (lowerMessage.match(/(preço|valor|custo)/)) keywords.push('preço');
+    if (lowerMessage.match(/(financiamento|parcela|entrada)/)) keywords.push('financiamento');
+    if (lowerMessage.match(/(troca|usado|avaliaç)/)) keywords.push('troca');
+    
+    // Sustentabilidade
+    if (lowerMessage.match(/(sustentabilidade|ecologia|ambiente)/)) keywords.push('sustentabilidade');
+    if (lowerMessage.match(/(economia|gastar|custo)/)) keywords.push('economia');
+    
+    // Tecnologia e conforto
+    if (lowerMessage.match(/(tecnologia|sistema|conectividade)/)) keywords.push('tecnologia');
+    if (lowerMessage.match(/(conforto|espaço|interior)/)) keywords.push('conforto');
+    if (lowerMessage.match(/(segurança|proteção)/)) keywords.push('segurança');
+    
+    // Uso pretendido
+    if (lowerMessage.match(/(família|filhos|criança)/)) keywords.push('família');
+    if (lowerMessage.match(/(trabalho|empresa|negócio)/)) keywords.push('trabalho');
+    if (lowerMessage.match(/(cidade|urbano|trânsito)/)) keywords.push('urbano');
+    if (lowerMessage.match(/(viagem|estrada|rodoviário)/)) keywords.push('viagem');
     
     return keywords;
   }
@@ -335,8 +425,10 @@ class OpenAIService {
       return 'Temos três modelos incríveis! 🚗 O B10 é nosso SUV compacto versátil, o T03 é perfeito para a cidade, e o C10 é nosso SUV premium espaçoso. Qual desperta mais seu interesse?';
     }
 
-    if (lowerMessage.includes('b10') || lowerMessage.includes('b 10')) {
-      return 'O B10 é nosso SUV compacto elétrico! Com 420km de autonomia, 231cv de potência e tecnologia Cell-to-Chassis. A partir de R$ 239.990. Gostaria de agendar um test-drive? 🔋';
+    if (lowerMessage.includes('b10') || lowerMessage.includes('b 10') || 
+        lowerMessage.includes('be10') || lowerMessage.includes('ben10') || 
+        lowerMessage.includes('ben 10') || lowerMessage.includes('b-10')) {
+      return 'Você quer saber sobre o *B10* (nosso SUV compacto)! 🚗 Com 420km de autonomia, 231cv e R$ 239.990. Quer agendar um test-drive ou falar com consultor?';
     }
 
     if (lowerMessage.includes('t03') || lowerMessage.includes('t 03')) {
