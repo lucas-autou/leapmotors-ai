@@ -16,8 +16,13 @@ function App() {
   const [avatarEmotion, setAvatarEmotion] = useState<AvatarEmotion>('welcoming');
   const [currentIntent, setCurrentIntent] = useState<Intent>('general_conversation');
   const [isThinking, setIsThinking] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [isIntroSpeech, setIsIntroSpeech] = useState(true); // Flag para saber se é a fala de intro
 
   useEffect(() => {
+    // Evita execução dupla
+    if (hasInitialized) return;
+    
     // Initialize services - agora só precisamos da chave OpenAI!
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY || 'demo';
     
@@ -29,22 +34,27 @@ function App() {
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: 'Olá! Bem-vindo à Leapmotor! 🌟 Eu sou a LEAP AI v2.0, sua assistente virtual super inteligente com voz neural OpenAI! Estou aqui para tornar sua experiência única e especial. Como posso começar a ajudá-lo hoje?',
+      content: 'Olá! Bem-vindo à Leapmotor! Eu sou a Lea, sua assistente virtual. Como posso ajudá-lo hoje?',
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
     setAvatarEmotion('welcoming');
     
-    // Speak welcome message with emotion
-    if (audioEnabled) {
-      speakMessage(welcomeMessage.content, 'welcoming');
-    }
-  }, [audioEnabled]);
+    // Marca como inicializado ANTES de falar para evitar duplicação
+    setHasInitialized(true);
+    
+    // Fala automaticamente a mensagem de boas-vindas ao abrir (intro)
+    setTimeout(() => {
+      speakMessage(welcomeMessage.content, 'welcoming', true); // true = é intro
+    }, 1000); // Delay maior para garantir que OpenAI TTS está completamente inicializado
+  }, [hasInitialized]); // Adiciona hasInitialized como dependência
 
-  const speakMessage = (text: string, emotion: AvatarEmotion = 'happy') => {
+  const speakMessage = (text: string, emotion: AvatarEmotion = 'happy', isIntro: boolean = false) => {
+    // Começa a mostrar vídeo imediatamente
     setIsSpeaking(true);
     setAvatarEmotion(emotion);
-    
+    setIsIntroSpeech(isIntro); // Define se é fala de intro
+
     // Mapear emoção do avatar para opções de voz OpenAI
     const emotionMap: Record<AvatarEmotion, 'neutral' | 'happy' | 'excited' | 'concerned' | 'cheerful' | 'friendly'> = {
       'neutral': 'neutral',
@@ -53,7 +63,13 @@ function App() {
       'excited': 'excited',
       'curious': 'friendly',
       'concerned': 'concerned',
-      'welcoming': 'cheerful'
+      'welcoming': 'cheerful',
+      'professional': 'neutral',
+      'confident': 'friendly',
+      'empathetic': 'cheerful',
+      'processing': 'neutral',
+      'surprised': 'excited',
+      'satisfied': 'happy'
     };
 
     console.log(`🎙️ Falando com emoção: ${emotion} -> ${emotionMap[emotion]}`);
@@ -63,9 +79,13 @@ function App() {
       speed: 1.0, // Velocidade normal para naturalidade
       voice: 'shimmer' // Voz feminina suave e fluida
     }, () => {
-      setIsSpeaking(false);
-      setAvatarEmotion('neutral');
-      console.log('🔇 Fala concluída');
+      // Delay maior para garantir que o vídeo continue até o fim do áudio
+      setTimeout(() => {
+        setIsSpeaking(false);
+        setAvatarEmotion('neutral');
+        setIsIntroSpeech(false); // Sempre volta para modo conversação após qualquer fala
+        console.log('🔇 Fala concluída - transição suave para imagem');
+      }, 500); // Delay maior para sincronizar com fim real do áudio
     });
   };
 
@@ -78,24 +98,24 @@ function App() {
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMessage]);
-    
+
     // Set thinking state
     setIsThinking(true);
     setAvatarEmotion('processing');
-    
+
     // Get AI response with enhanced context
     const conversationHistory = messages.map(m => ({
       role: m.role,
       content: m.content
     }));
-    
+
     try {
       const aiResponse = await openAIService.getResponse(content, conversationHistory);
-      
+
       // Update states based on AI response
       setCurrentIntent(aiResponse.intent);
       setIsThinking(false);
-      
+
       // Map intent to emotion - usando novos estados emocionais
       const intentToEmotion: Record<Intent, AvatarEmotion> = {
         'greeting': 'welcoming',
@@ -109,10 +129,10 @@ function App() {
         'general_conversation': 'neutral',
         'goodbye': 'satisfied'
       };
-      
+
       const responseEmotion = intentToEmotion[aiResponse.intent] || 'neutral';
       setAvatarEmotion(responseEmotion);
-      
+
       // Add assistant response
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -121,7 +141,7 @@ function App() {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
-      
+
       // Speak response with appropriate emotion
       if (audioEnabled) {
         speakMessage(aiResponse.response, responseEmotion);
@@ -133,7 +153,7 @@ function App() {
       console.error('Erro ao processar mensagem:', error);
       setIsThinking(false);
       setAvatarEmotion('concerned');
-      
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -141,7 +161,7 @@ function App() {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-      
+
       if (audioEnabled) {
         speakMessage(errorMessage.content, 'concerned');
       }
@@ -158,19 +178,19 @@ function App() {
       setIsListening(true);
       setAvatarEmotion('curious'); // Mostra que está prestando atenção
       console.log('🎤 Começou a escutar...');
-      
+
       openaiSpeechService.startListening(
         (transcript, confidence) => {
           setIsListening(false);
           console.log(`✅ Reconhecido (${Math.round(confidence * 100)}%): "${transcript}"`);
-          
+
           // Processar com confiança mais baixa pois OpenAI/Web Speech são bons
           if (confidence > 0.2) {
             handleSendMessage(transcript);
           } else {
             setAvatarEmotion('concerned');
             console.log('❌ Confiança muito baixa, ignorando transcrição');
-            
+
             const errorMessage: Message = {
               id: Date.now().toString(),
               role: 'assistant',
@@ -178,7 +198,7 @@ function App() {
               timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMessage]);
-            
+
             setTimeout(() => setAvatarEmotion('neutral'), 2000);
           }
         },
@@ -186,7 +206,7 @@ function App() {
           console.error('❌ Erro reconhecimento de voz:', error);
           setIsListening(false);
           setAvatarEmotion('concerned');
-          
+
           // Mostrar erro de forma mais amigável
           const errorMessage: Message = {
             id: Date.now().toString(),
@@ -195,7 +215,7 @@ function App() {
             timestamp: new Date()
           };
           setMessages(prev => [...prev, errorMessage]);
-          
+
           setTimeout(() => setAvatarEmotion('neutral'), 3000);
         },
         () => {
@@ -218,7 +238,7 @@ function App() {
       setAudioEnabled(true);
       setAvatarEmotion('happy');
       console.log('🔊 Áudio ativado - usando OpenAI TTS');
-      
+
       // Breve confirmação de que o áudio foi ativado
       setTimeout(() => setAvatarEmotion('neutral'), 1500);
     }
@@ -289,7 +309,7 @@ function App() {
                 <p className="text-leap-green-400 text-lg font-medium">LEAP AI 3.0 • Recepção Digital Inteligente</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm text-gray-400">Sistema de IA</p>
@@ -298,7 +318,7 @@ function App() {
                   <span className="text-green-400 font-medium text-sm">Neural Network Online</span>
                 </div>
               </div>
-              
+
               <div className="px-4 py-2 bg-gradient-to-r from-leap-green-500/20 to-cyan-500/20 rounded-full border border-leap-green-500/30 backdrop-blur-sm">
                 <span className="text-leap-green-400 text-sm font-medium">🤖 IA Ativa</span>
               </div>
@@ -333,32 +353,33 @@ function App() {
                     />
                   ))}
                   {/* Connection lines */}
-                  <path d="M 50 50 L 150 50 L 250 150 M 150 150 L 350 50" 
+                  <path d="M 50 50 L 150 50 L 250 150 M 150 150 L 350 50"
                         stroke="#00B74F" strokeWidth="1" opacity="0.3" />
                 </svg>
               </div>
-              
+
               {/* Avatar Heroico */}
               <div className="relative z-10 flex flex-col items-center">
-                <Avatar 
-                  isSpeaking={isSpeaking} 
-                  emotion={avatarEmotion} 
+                <Avatar
+                  isSpeaking={isSpeaking}
+                  emotion={avatarEmotion}
                   isListening={isListening}
                   isIdle={!isSpeaking && !isListening && !isThinking}
                   size="hero"
+                  isIntro={isIntroSpeech} // Passa a flag para o Avatar
                 />
-                
+
                 {/* AI Status Premium */}
                 <div className="mt-6 text-center">
                   <h2 className="text-3xl font-bold text-white mb-2">LEAP AI 3.0</h2>
                   <p className="text-leap-green-400 text-lg font-medium mb-4">
                     Sua Consultora Digital Inteligente
                   </p>
-                  
+
                   {/* Status dinâmico */}
                   <div className="bg-black/40 rounded-full px-4 py-2 backdrop-blur-sm border border-gray-600">
                     <p className="text-sm text-gray-300">
-                      {isThinking ? '🧠 Analisando sua pergunta...' : 
+                      {isThinking ? '🧠 Analisando sua pergunta...' :
                        isSpeaking ? '🗣️ Falando com você...' :
                        isListening ? '👂 Escutando atentamente...' :
                        '💭 Pronta para ajudar você'}

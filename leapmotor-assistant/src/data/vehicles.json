@@ -2,47 +2,28 @@
   "vehicles": [
     {
       "id": "b10",
-      "name": "Novo B10",
+      "name": "B10",
       "type": "SUV Compacto Elétrico",
-      "image": "https://images.unsplash.com/photo-1615063508897-5f7c978ebe9a?w=600&q=80",
-      "price": "R$ 239.990",
-      "autonomy": "420 km",
-      "power": "231 cv",
-      "acceleration": "7.9s (0-100km/h)",
-      "battery": "69.9 kWh",
+      "image": "https://images.unsplash.com/photo-1581540221736-45d5d7876d77?w=600&q=80",
+      "price": "R$ 199.990",
+      "autonomy": "600 km",
+      "power": "177 cv",
+      "acceleration": "9.2s (0-100km/h)",
+      "battery": "67.1 kWh",
       "features": [
         "Design moderno e aerodinâmico",
-        "Tecnologia Cell-to-Chassis (CTC)",
-        "Sistema LEAP 3.0",
+        "Tela multimídia 14.6 polegadas",
+        "Painel digital 8.8 polegadas",
         "Carregamento rápido DC",
         "5 lugares confortáveis",
-        "Porta-malas de 410L"
-      ]
-    },
-    {
-      "id": "t03",
-      "name": "T03",
-      "type": "Hatch Urbano Elétrico",
-      "image": "https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=600&q=80",
-      "price": "R$ 169.990",
-      "autonomy": "280 km",
-      "power": "109 cv",
-      "acceleration": "12.7s (0-100km/h)",
-      "battery": "41.3 kWh",
-      "features": [
-        "Compacto e ágil para cidade",
-        "4 lugares",
-        "Baixo custo de manutenção",
-        "Sistema multimídia 10.1\"",
-        "Airbags frontais e laterais",
-        "Controle de estabilidade"
+        "Porta-malas espaçoso"
       ]
     },
     {
       "id": "c10",
       "name": "C10",
       "type": "SUV Médio Elétrico Premium",
-      "image": "https://images.unsplash.com/photo-1619317467384-7b3382953e9f?w=600&q=80",
+      "image": "https://lpwebsite-prod-s3cdn.leapmotor-international.com/public/en-cms/1740557144391C10HOME.jpg",
       "price": "R$ 299.990",
       "autonomy": "420 km",
       "power": "231 cv",
@@ -52,9 +33,9 @@
         "Interior premium e espaçoso",
         "7 lugares opcionais",
         "Teto solar panorâmico",
-        "Sistema de som premium",
+        "Sistema ADAS com 17 funções",
         "Assistentes de condução avançados",
-        "Porta-malas de 435L"
+        "Porta-malas de 435L expansível"
       ]
     }
   ]

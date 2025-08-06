@@ -73,6 +73,11 @@ class OpenAISpeechService {
       return;
     }
 
+    // Garantir que Web Speech está parado antes de começar
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
     // Limpar emojis e símbolos do texto antes da síntese
     const cleanText = this.cleanTextForSpeech(text);
     console.log(`🧹 Texto limpo para fala: "${cleanText}"`);
@@ -141,15 +146,17 @@ class OpenAISpeechService {
         console.error('Erro na reprodução OpenAI TTS:', error);
         URL.revokeObjectURL(audioUrl);
         this.currentAudio = null;
-        // Fallback para Web Speech em caso de erro
-        this.speakWithWebAPI(text, options, onEnd);
+        // Só usar fallback se realmente falhou
+        if (onEnd) onEnd();
       };
 
       await this.currentAudio.play();
+      console.log('✅ OpenAI TTS reproduzindo com sucesso');
 
     } catch (error) {
       console.error('Erro OpenAI TTS:', error);
-      // Fallback para Web Speech API
+      // Só usar fallback se realmente não conseguir usar OpenAI
+      console.log('⚠️ Tentando fallback para Web Speech API...');
       this.speakWithWebAPI(text, options, onEnd);
     }
   }
@@ -196,7 +203,7 @@ class OpenAISpeechService {
       return;
     }
 
-    console.log('🔊 Usando Web Speech API como fallback');
+    console.log('⚠️ ATENÇÃO: Usando Web Speech API (não OpenAI) - Isso causa sotaque PT-PT!');
 
     // Parar qualquer síntese em andamento
     window.speechSynthesis.cancel();

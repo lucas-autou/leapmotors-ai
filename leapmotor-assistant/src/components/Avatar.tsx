@@ -1,10 +1,12 @@
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
 
 export type AvatarEmotion = 
   | 'welcoming' | 'professional' | 'curious' | 'excited' 
   | 'thinking' | 'concerned' | 'happy' | 'confident' 
   | 'empathetic' | 'processing' | 'surprised' | 'satisfied' | 'neutral';
+
+export type AvatarExpression = 'neutral' | 'smiling' | 'speaking';
 
 interface AvatarProps {
   isSpeaking: boolean;
@@ -12,6 +14,7 @@ interface AvatarProps {
   isListening?: boolean;
   isIdle?: boolean;
   size?: 'normal' | 'large' | 'hero';
+  isIntro?: boolean; // Nova prop para identificar se é a fala de intro
 }
 
 export const Avatar: React.FC<AvatarProps> = ({ 
@@ -19,24 +22,124 @@ export const Avatar: React.FC<AvatarProps> = ({
   emotion = 'neutral', 
   isListening = false,
   isIdle = true,
-  size = 'normal'
+  size = 'normal',
+  isIntro = false
 }) => {
-  const [blinkAnimation, setBlinkAnimation] = useState(false);
+  const [currentExpression, setCurrentExpression] = useState<AvatarExpression>('neutral');
   const [breathingPhase, setBreathingPhase] = useState(0);
   const [idleMovement, setIdleMovement] = useState({ x: 0, y: 0 });
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Sistema de piscadas ultra-natural
+  // Paths das imagens do avatar
+  const avatarImages = {
+    neutral: '/leap-avatar-neutro.png',
+    smiling: '/leap-avatar-sorrindo.png',
+    speaking: '/leap-avatar-falando.png'
+  };
+
+  // Paths dos vídeos - diferentes para intro e conversação
+  const videoPaths = {
+    intro: '/leap-animated-hello.mp4',
+    conversation: '/video-loop-lea.mp4'
+  };
+  
+  // Seleciona vídeo baseado se é intro ou não
+  const currentVideoPath = isIntro ? videoPaths.intro : videoPaths.conversation;
+
+  // Preload das imagens e vídeo
   useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      if (!isSpeaking) {
-        setBlinkAnimation(true);
-        setTimeout(() => setBlinkAnimation(false), 150 + Math.random() * 100);
-      }
-    }, 1500 + Math.random() * 5000);
+    const imagePromises = Object.values(avatarImages).map(src => {
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Continuar mesmo se uma imagem falhar
+        img.src = src;
+      });
+    });
 
-    return () => clearInterval(blinkInterval);
+    Promise.all(imagePromises).then(() => {
+      setImagesLoaded(true);
+    });
+
+    // Preload do vídeo
+    if (videoRef.current) {
+      videoRef.current.addEventListener('loadeddata', () => {
+        setVideoLoaded(true);
+        console.log('🎥 Vídeo carregado e pronto');
+      });
+      
+      videoRef.current.addEventListener('error', (e) => {
+        console.error('❌ Erro ao carregar vídeo:', e);
+        setVideoLoaded(false);
+      });
+    }
+  }, []);
+
+  // Sistema inteligente de seleção de expressão
+  useEffect(() => {
+    const getExpressionForEmotion = (emotion: AvatarEmotion, isSpeaking: boolean): AvatarExpression => {
+      // Prioridade 1: Se está falando, mostrar expressão de fala
+      if (isSpeaking) return 'speaking';
+      
+      // Prioridade 2: Expressões que sempre sorriem
+      const happyEmotions = ['welcoming', 'happy', 'excited', 'satisfied', 'cheerful'];
+      if (happyEmotions.includes(emotion)) return 'smiling';
+      
+      // Prioridade 3: Outras emoções ficam neutras
+      return 'neutral';
+    };
+
+    setCurrentExpression(getExpressionForEmotion(emotion, isSpeaking));
+  }, [emotion, isSpeaking]);
+
+  // Controle de transição vídeo/imagem sincronizado com áudio real
+  useEffect(() => {
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+
+    if (isSpeaking) {
+      // Delay maior para aguardar o áudio começar de verdade
+      transitionTimeoutRef.current = setTimeout(() => {
+        setShowVideo(true);
+        
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0; // Reinicia do começo
+          videoRef.current.play().catch(e => {
+            console.error('Erro ao reproduzir vídeo:', e);
+            // Tenta novamente após um pequeno delay
+            setTimeout(() => {
+              videoRef.current?.play().catch(e2 => {
+                console.error('Segunda tentativa falhou:', e2);
+              });
+            }, 100);
+          });
+        }
+      }, 800); // Aguarda 800ms para o áudio começar de verdade
+    } else {
+      // Delay maior para manter vídeo até o áudio terminar completamente
+      transitionTimeoutRef.current = setTimeout(() => {
+        setShowVideo(false);
+        
+        if (videoRef.current) {
+          // Pausa o vídeo após a transição completar
+          setTimeout(() => {
+            videoRef.current?.pause();
+            videoRef.current.currentTime = 0; // Volta ao início
+          }, 400); // Aguarda a transição CSS completar
+        }
+      }, 1000); // Delay de 1s após parar de falar (para sincronizar com fim do áudio)
+    }
+
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
   }, [isSpeaking]);
 
   // Sistema de respiração realista
@@ -62,210 +165,84 @@ export const Avatar: React.FC<AvatarProps> = ({
     return () => clearInterval(moveInterval);
   }, [isIdle, isSpeaking, isListening]);
 
-  // Eye tracking para interação premium
-  useEffect(() => {
-    if (!isIdle || !eyeTrackingEnabled) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = document.querySelector('.avatar-container')?.getBoundingClientRect();
-      if (rect) {
-        setMousePosition({
-          x: (e.clientX - rect.left - rect.width / 2) / rect.width,
-          y: (e.clientY - rect.top - rect.height / 2) / rect.height
-        });
-      }
-    };
 
-    const enableEyeTracking = () => setEyeTrackingEnabled(true);
-    const disableEyeTracking = () => setEyeTrackingEnabled(false);
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseenter', enableEyeTracking);
-    document.addEventListener('mouseleave', disableEyeTracking);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseenter', enableEyeTracking);
-      document.removeEventListener('mouseleave', disableEyeTracking);
-    };
-  }, [isIdle]);
-
-  // Expressões de boca ultra-realistas
-  const mouthVariants = {
-    closed: { d: "M 38 62 Q 50 64 62 62" },
-    open: { d: "M 38 62 Q 50 69 62 62" },
-    smile: { d: "M 36 60 Q 50 67 64 60" },
-    wide_smile: { d: "M 34 58 Q 50 69 66 58" },
-    excited_open: { d: "M 35 59 Q 50 72 65 59" },
-    concerned: { d: "M 40 63 Q 50 66 60 63" },
-    thinking: { d: "M 42 62 Q 50 64 58 62" },
-    welcoming: { d: "M 32 59 Q 50 68 68 59" },
-    confident: { d: "M 37 61 Q 50 66 63 61" },
-    empathetic: { d: "M 39 61 Q 50 65 61 61" },
-    surprised: { d: "M 42 61 Q 50 67 58 61" },
-    satisfied: { d: "M 36 60 Q 50 66 64 60" },
-    professional: { d: "M 40 62 Q 50 65 60 62" }
-  };
-
-  // Olhos mais expressivos com tracking
-  const eyeVariants = {
-    open: { scaleY: 1, scaleX: 1, x: 0, y: 0 },
-    closed: { scaleY: 0.1, scaleX: 1, x: 0, y: 0 },
-    wide: { scaleY: 1.3, scaleX: 1.2, x: 0, y: 0 },
-    squint: { scaleY: 0.6, scaleX: 0.95, x: 0, y: 0 },
-    gentle: { scaleY: 0.85, scaleX: 1, x: 0, y: 0 },
-    surprised: { scaleY: 1.4, scaleX: 1.3, x: 0, y: 0 },
-    confident: { scaleY: 0.9, scaleX: 1.05, x: 0, y: 0 },
-    tracking: { 
-      scaleY: 1, 
-      scaleX: 1, 
-      x: eyeTrackingEnabled ? mousePosition.x * 2 : 0, 
-      y: eyeTrackingEnabled ? mousePosition.y * 1.5 : 0 
-    }
-  };
-
-  // Sobrancelhas com expressões naturais
-  const eyebrowVariants = {
-    neutral: { d: "M 23 33 Q 35 30 45 33", y: 0 },
-    raised: { d: "M 23 30 Q 35 27 45 30", y: -1 },
-    furrowed: { d: "M 23 35 Q 35 32 45 35", y: 1 },
-    gentle: { d: "M 23 32 Q 35 29 45 32", y: -0.5 },
-    surprised: { d: "M 23 28 Q 35 25 45 28", y: -2 },
-    confident: { d: "M 23 31 Q 35 28 45 31", y: -0.3 },
-    concerned: { d: "M 23 36 Q 35 33 45 36", y: 1.5 },
-    thinking: { d: "M 23 34 Q 35 31 45 34", y: 0.5 }
-  };
-
-  // Mapeamento inteligente de emoções para expressões
-  const getMouthState = () => {
-    if (isSpeaking) return ['open', 'closed'];
-    
-    switch (emotion) {
-      case 'welcoming': return 'welcoming';
-      case 'professional': return 'professional';
-      case 'curious': return 'smile';
-      case 'excited': return 'excited_open';
-      case 'thinking': return 'thinking';
-      case 'concerned': return 'concerned';
-      case 'happy': return 'wide_smile';
-      case 'confident': return 'confident';
-      case 'empathetic': return 'empathetic';
-      case 'processing': return 'thinking';
-      case 'surprised': return 'surprised';
-      case 'satisfied': return 'satisfied';
-      case 'neutral':
-      default:
-        return 'closed';
-    }
-  };
-
-  const getEyeState = () => {
-    if (blinkAnimation) return 'closed';
-    if (eyeTrackingEnabled && isIdle) return 'tracking';
-    
-    switch (emotion) {
-      case 'excited':
-      case 'surprised':
-        return 'wide';
-      case 'curious':
-        return 'wide';
-      case 'thinking':
-      case 'processing':
-        return 'squint';
-      case 'concerned':
-        return 'squint';
-      case 'happy':
-      case 'welcoming':
-      case 'satisfied':
-        return 'gentle';
-      case 'confident':
-      case 'professional':
-        return 'confident';
-      case 'empathetic':
-        return 'gentle';
-      case 'neutral':
-      default:
-        return 'open';
-    }
-  };
-
-  const getEyebrowState = () => {
-    switch (emotion) {
-      case 'curious':
-      case 'surprised':
-        return 'raised';
-      case 'excited':
-        return 'raised';
-      case 'thinking':
-      case 'processing':
-        return 'thinking';
-      case 'concerned':
-        return 'concerned';
-      case 'happy':
-      case 'welcoming':
-      case 'satisfied':
-        return 'gentle';
-      case 'confident':
-      case 'professional':
-        return 'confident';
-      case 'empathetic':
-        return 'gentle';
-      case 'neutral':
-      default:
-        return 'neutral';
-    }
-  };
 
   // Paleta de cores premium baseada em emoções
   const getAvatarColor = () => {
     switch (emotion) {
       case 'welcoming':
-        return { from: '#00B74F', to: '#00a347', glow: '#00B74F40' };
+        return { glow: '#00B74F40' };
       case 'professional':
-        return { from: '#1e40af', to: '#1e3a8a', glow: '#3b82f640' };
+        return { glow: '#3b82f640' };
       case 'curious':
-        return { from: '#06b6d4', to: '#0891b2', glow: '#06b6d440' };
+        return { glow: '#06b6d440' };
       case 'excited':
-        return { from: '#f59e0b', to: '#d97706', glow: '#f59e0b40' };
+        return { glow: '#f59e0b40' };
       case 'thinking':
       case 'processing':
-        return { from: '#8b5cf6', to: '#7c3aed', glow: '#8b5cf640' };
+        return { glow: '#8b5cf640' };
       case 'concerned':
-        return { from: '#ef4444', to: '#dc2626', glow: '#ef444440' };
+        return { glow: '#ef444440' };
       case 'happy':
       case 'satisfied':
-        return { from: '#10b981', to: '#059669', glow: '#10b98140' };
+        return { glow: '#10b98140' };
       case 'confident':
-        return { from: '#0f172a', to: '#1e293b', glow: '#64748b40' };
+        return { glow: '#64748b40' };
       case 'empathetic':
-        return { from: '#ec4899', to: '#db2777', glow: '#ec489940' };
+        return { glow: '#ec489940' };
       case 'surprised':
-        return { from: '#eab308', to: '#ca8a04', glow: '#eab30840' };
+        return { glow: '#eab30840' };
       case 'neutral':
       default:
-        return { from: '#00B74F', to: '#00a347', glow: '#00B74F30' };
+        return { glow: '#00B74F30' };
     }
   };
 
   // Calcular animação de respiração realista
   const breathingScale = 1 + Math.sin(breathingPhase * Math.PI / 180) * 0.015;
-  const shoulderBreathing = Math.sin(breathingPhase * Math.PI / 180) * 0.5;
 
-  // Determinar tamanho do avatar
+  // Determinar tamanho do avatar - versão expandida para vídeo maior
   const getAvatarSize = () => {
     switch (size) {
-      case 'hero': return { width: 'w-96', height: 'h-96', size: 400 };
-      case 'large': return { width: 'w-64', height: 'h-64', size: 256 };
+      case 'hero': return { 
+        container: 'w-[500px] h-[400px]', // Container retangular maior
+        image: 'w-96 h-96', // Imagem mantém círculo
+        video: 'w-full h-full', // Vídeo ocupa todo container
+        size: 500 
+      };
+      case 'large': return { 
+        container: 'w-80 h-64', 
+        image: 'w-64 h-64',
+        video: 'w-full h-full',
+        size: 256 
+      };
       case 'normal':
-      default: return { width: 'w-48', height: 'h-48', size: 192 };
+      default: return { 
+        container: 'w-48 h-48',
+        image: 'w-48 h-48', 
+        video: 'w-full h-full',
+        size: 192 
+      };
     }
   };
 
   const avatarSize = getAvatarSize();
   const avatarColors = getAvatarColor();
 
+  // Se as imagens ainda não carregaram, mostrar placeholder
+  if (!imagesLoaded) {
+    return (
+      <div className={`relative ${avatarSize.container} mx-auto avatar-container`}>
+        <div className="absolute inset-0 rounded-2xl bg-gray-300 animate-pulse flex items-center justify-center">
+          <span className="text-gray-500 text-sm">Carregando...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`relative ${avatarSize.width} ${avatarSize.height} mx-auto avatar-container`}>
+    <div className={`relative ${avatarSize.container} mx-auto avatar-container overflow-hidden`}>
       {/* Glow effect premium */}
       <motion.div
         className="absolute inset-0 rounded-full blur-2xl"
@@ -284,13 +261,9 @@ export const Avatar: React.FC<AvatarProps> = ({
         }}
       />
 
-      {/* Avatar background premium com gradiente */}
+      {/* Avatar principal com vídeo e imagem */}
       <motion.div
-        className="absolute inset-0 rounded-full shadow-2xl ring-2 ring-white/20"
-        style={{
-          background: `linear-gradient(145deg, ${avatarColors.from}, ${avatarColors.to})`,
-          boxShadow: `0 20px 40px -10px ${avatarColors.glow}, inset 0 1px 2px rgba(255,255,255,0.3)`
-        }}
+        className="relative z-10 w-full h-full flex items-center justify-center"
         animate={{
           scale: isSpeaking ? [1, 1.05, 1] : breathingScale,
           x: isIdle ? idleMovement.x : 0,
@@ -301,7 +274,41 @@ export const Avatar: React.FC<AvatarProps> = ({
           repeat: isSpeaking ? Infinity : 0,
           ease: "easeInOut"
         }}
-      />
+      >
+        {/* Camada base: Imagem estática circular (sempre presente) */}
+        <img
+          src={avatarImages.neutral}
+          alt="Avatar neutro"
+          className={`absolute ${avatarSize.image} object-cover rounded-full`}
+          style={{
+            opacity: showVideo ? 0 : 1,
+            transition: 'opacity 400ms ease-in-out',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
+        
+        {/* Camada overlay: Vídeo retangular maior (aparece quando falando) */}
+        <video
+          ref={videoRef}
+          src={currentVideoPath}
+          className={`absolute ${avatarSize.video} object-cover rounded-2xl`}
+          style={{
+            opacity: showVideo ? 1 : 0,
+            transition: 'opacity 400ms ease-in-out',
+            willChange: 'opacity',
+            pointerEvents: 'none',
+          }}
+          loop
+          muted
+          playsInline
+          autoPlay={false}
+          preload="auto"
+          key={currentVideoPath} // Força re-render quando vídeo muda
+        />
+      </motion.div>
+
 
       {/* Partículas flutuantes para emoções específicas */}
       {(emotion === 'excited' || emotion === 'happy' || emotion === 'surprised') && (
@@ -379,425 +386,6 @@ export const Avatar: React.FC<AvatarProps> = ({
           ))}
         </div>
       )}
-      
-      <svg
-        viewBox="0 0 100 100"
-        className="relative z-10 w-full h-full"
-      >
-        {/* Definir gradientes e filtros premium */}
-        <defs>
-          <radialGradient id="faceGradient" cx="0.3" cy="0.3">
-            <stop offset="0%" stopColor="#ffd0c4" />
-            <stop offset="50%" stopColor="#fdbcb4" />
-            <stop offset="100%" stopColor="#f4a09c" />
-          </radialGradient>
-          <linearGradient id="hairGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#8B4513" />
-            <stop offset="30%" stopColor="#D2B48C" />
-            <stop offset="100%" stopColor="#8B4513" />
-          </linearGradient>
-          <filter id="soften" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
-          </filter>
-        </defs>
-
-        {/* Face shape mais realista */}
-        <ellipse
-          cx="50"
-          cy="52"
-          rx="32"
-          ry="35"
-          fill="url(#faceGradient)"
-          filter="url(#soften)"
-        />
-        
-        {/* Contorno facial suave */}
-        <ellipse
-          cx="50"
-          cy="52"
-          rx="32"
-          ry="35"
-          fill="none"
-          stroke="rgba(244, 160, 156, 0.3)"
-          strokeWidth="0.5"
-        />
-        
-        {/* Cabelo moderno long bob */}
-        <path
-          d="M 18 38 Q 25 18 50 20 Q 75 18 82 38 
-             L 85 45 Q 80 50 75 48 L 75 55 Q 70 58 65 56
-             Q 60 54 55 56 Q 50 58 45 56 Q 40 54 35 56
-             L 25 55 Q 20 50 15 45 Z"
-          fill="url(#hairGradient)"
-          filter="url(#soften)"
-        />
-        
-        {/* Hair highlights */}
-        <path
-          d="M 30 25 Q 40 22 50 24 Q 60 22 70 25"
-          stroke="#D2B48C"
-          strokeWidth="2"
-          fill="none"
-          opacity="0.6"
-        />
-        
-        {/* Olhos ultrarrealistas com íris colorida */}
-        
-        {/* Eye whites */}
-        <motion.ellipse
-          cx="35"
-          cy="42"
-          rx="10"
-          ry="8"
-          fill="white"
-          animate={getEyeState()}
-          variants={eyeVariants}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        />
-        <motion.ellipse
-          cx="65"
-          cy="42"
-          rx="10"
-          ry="8"
-          fill="white"
-          animate={getEyeState()}
-          variants={eyeVariants}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        />
-
-        {/* Íris com gradiente Leapmotor green */}
-        <motion.ellipse
-          cx="35"
-          cy="42"
-          rx="6"
-          ry="6"
-          fill="#00B74F"
-          animate={getEyeState()}
-          variants={eyeVariants}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        />
-        <motion.ellipse
-          cx="65"
-          cy="42"
-          rx="6"
-          ry="6"
-          fill="#00B74F"
-          animate={getEyeState()}
-          variants={eyeVariants}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        />
-
-        {/* Inner iris detail */}
-        <motion.ellipse
-          cx="35"
-          cy="42"
-          rx="4"
-          ry="4"
-          fill="#00a347"
-          animate={getEyeState()}
-          variants={eyeVariants}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        />
-        <motion.ellipse
-          cx="65"
-          cy="42"
-          rx="4"
-          ry="4"
-          fill="#00a347"
-          animate={getEyeState()}
-          variants={eyeVariants}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        />
-
-        {/* Pupils com dilatação emocional */}
-        <motion.ellipse
-          cx="35"
-          cy="42"
-          rx="2"
-          ry="2"
-          fill="#000"
-          animate={{
-            ...getEyeState(),
-            scale: (emotion === 'excited' || emotion === 'surprised') ? 1.3 : 
-                   (emotion === 'thinking' || emotion === 'concerned') ? 0.8 : 1
-          }}
-          variants={eyeVariants}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        />
-        <motion.ellipse
-          cx="65"
-          cy="42"
-          rx="2"
-          ry="2"
-          fill="#000"
-          animate={{
-            ...getEyeState(),
-            scale: (emotion === 'excited' || emotion === 'surprised') ? 1.3 : 
-                   (emotion === 'thinking' || emotion === 'concerned') ? 0.8 : 1
-          }}
-          variants={eyeVariants}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        />
-        
-        {/* Reflexos realistas nos olhos */}
-        <motion.circle 
-          cx="33" 
-          cy="40" 
-          r="1.5" 
-          fill="white" 
-          animate={{ 
-            opacity: emotion === 'excited' || emotion === 'curious' ? [0.7, 1, 0.7] : 0.9,
-            scale: emotion === 'excited' ? [1, 1.2, 1] : 1
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-        <motion.circle 
-          cx="63" 
-          cy="40" 
-          r="1.5" 
-          fill="white" 
-          animate={{ 
-            opacity: emotion === 'excited' || emotion === 'curious' ? [0.7, 1, 0.7] : 0.9,
-            scale: emotion === 'excited' ? [1, 1.2, 1] : 1
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-
-        {/* Smaller sparkles */}
-        <motion.circle 
-          cx="37" 
-          cy="44" 
-          r="0.8" 
-          fill="white" 
-          opacity="0.6"
-        />
-        <motion.circle 
-          cx="67" 
-          cy="44" 
-          r="0.8" 
-          fill="white" 
-          opacity="0.6"
-        />
-
-        {/* Cílios superiores */}
-        <path
-          d="M 26 36 Q 28 34 30 36 M 30 35 Q 32 33 34 35 M 34 35 Q 36 33 38 35 M 38 36 Q 40 34 42 36"
-          stroke="#2d1810"
-          strokeWidth="1"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 56 36 Q 58 34 60 36 M 60 35 Q 62 33 64 35 M 64 35 Q 66 33 68 35 M 68 36 Q 70 34 72 36"
-          stroke="#2d1810"
-          strokeWidth="1"
-          fill="none"
-          strokeLinecap="round"
-        />
-
-        {/* Cílios inferiores subtis */}
-        <path
-          d="M 28 46 Q 30 47 32 46 M 36 47 Q 38 48 40 47"
-          stroke="#2d1810"
-          strokeWidth="0.5"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.4"
-        />
-        <path
-          d="M 58 46 Q 60 47 62 46 M 66 47 Q 68 48 70 47"
-          stroke="#2d1810"
-          strokeWidth="0.5"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.4"
-        />
-        
-        {/* Sobrancelhas ultra-realistas */}
-        <motion.path
-          animate={getEyebrowState()}
-          variants={eyebrowVariants}
-          stroke="#2d1810"
-          strokeWidth="2.5"
-          fill="none"
-          strokeLinecap="round"
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        />
-        <motion.path
-          d="M 55 33 Q 65 30 75 33"
-          animate={getEyebrowState()}
-          stroke="#2d1810"
-          strokeWidth="2.5"
-          fill="none"
-          strokeLinecap="round"
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        />
-
-        {/* Individual eyebrow hairs for realism */}
-        <path d="M 25 33 L 27 32 M 29 32 L 31 31 M 33 31 L 35 32 M 37 32 L 39 33" 
-              stroke="#2d1810" strokeWidth="0.8" opacity="0.6" />
-        <path d="M 61 33 L 63 32 M 65 32 L 67 31 M 69 31 L 71 32 M 73 32 L 75 33" 
-              stroke="#2d1810" strokeWidth="0.8" opacity="0.6" />
-        
-        {/* Nariz feminino elegante com sombra */}
-        <ellipse
-          cx="50"
-          cy="52"
-          rx="2"
-          ry="4"
-          fill="#f4a09c"
-        />
-        <path
-          d="M 48 50 Q 50 48 52 50"
-          stroke="#f4a09c"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-        />
-        {/* Narinas subtis */}
-        <ellipse cx="47.5" cy="54" rx="1" ry="1.5" fill="#e6a8a8" opacity="0.4" />
-        <ellipse cx="52.5" cy="54" rx="1" ry="1.5" fill="#e6a8a8" opacity="0.4" />
-
-        {/* Boca premium com gradiente e lip gloss */}
-        <defs>
-          <linearGradient id="lipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#E6A8A8" />
-            <stop offset="50%" stopColor="#d19999" />
-            <stop offset="100%" stopColor="#c48a8a" />
-          </linearGradient>
-        </defs>
-
-        {/* Lip base */}
-        <motion.path
-          animate={getMouthState()}
-          variants={mouthVariants}
-          transition={{
-            duration: isSpeaking ? 0.12 : 0.25,
-            repeat: isSpeaking ? Infinity : 0,
-            repeatType: isSpeaking ? "reverse" : "loop",
-            ease: "easeInOut"
-          }}
-          stroke="url(#lipGradient)"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-        />
-
-        {/* Lip gloss highlight */}
-        <motion.path
-          animate={getMouthState()}
-          variants={mouthVariants}
-          d="M 40 61 Q 50 64 60 61"
-          stroke="rgba(255,255,255,0.4)"
-          strokeWidth="1"
-          fill="none"
-          strokeLinecap="round"
-          transition={{
-            duration: isSpeaking ? 0.12 : 0.25,
-            repeat: isSpeaking ? Infinity : 0,
-            repeatType: isSpeaking ? "reverse" : "loop",
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* Lip line definition */}
-        <motion.path
-          animate={getMouthState()}
-          variants={mouthVariants}
-          stroke="#c48a8a"
-          strokeWidth="1"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.6"
-          transition={{
-            duration: isSpeaking ? 0.12 : 0.25,
-            repeat: isSpeaking ? Infinity : 0,
-            repeatType: isSpeaking ? "reverse" : "loop",
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* Blush natural nas bochechas para emoções positivas */}
-        {(emotion === 'happy' || emotion === 'welcoming' || emotion === 'excited' || emotion === 'satisfied') && (
-          <>
-            <motion.ellipse
-              cx="28"
-              cy="55"
-              rx="5"
-              ry="3"
-              fill="#ff9999"
-              opacity="0.25"
-              animate={{
-                opacity: [0.15, 0.35, 0.15],
-                scale: [1, 1.08, 1]
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-            />
-            <motion.ellipse
-              cx="72"
-              cy="55"
-              rx="5"
-              ry="3"
-              fill="#ff9999"
-              opacity="0.25"
-              animate={{
-                opacity: [0.15, 0.35, 0.15],
-                scale: [1, 1.08, 1]
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-            />
-          </>
-        )}
-
-        {/* Dimples para sorrisos genuínos */}
-        {(emotion === 'happy' || emotion === 'welcoming' || emotion === 'satisfied') && (
-          <>
-            <motion.circle
-              cx="38"
-              cy="58"
-              r="1"
-              fill="#e6a8a8"
-              opacity="0.4"
-              animate={{
-                scale: [0.8, 1.2, 0.8],
-                opacity: [0.2, 0.6, 0.2]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <motion.circle
-              cx="62"
-              cy="58"
-              r="1"
-              fill="#e6a8a8"
-              opacity="0.4"
-              animate={{
-                scale: [0.8, 1.2, 0.8],
-                opacity: [0.2, 0.6, 0.2]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </>
-        )}
-
-        {/* Chin definition */}
-        <ellipse
-          cx="50"
-          cy="75"
-          rx="8"
-          ry="4"
-          fill="#f4a09c"
-          opacity="0.3"
-        />
-        
-        {/* Jaw line sutil */}
-        <path
-          d="M 22 65 Q 35 75 50 76 Q 65 75 78 65"
-          stroke="#e6a8a8"
-          strokeWidth="1"
-          fill="none"
-          opacity="0.2"
-        />
-      </svg>
       
       {/* Status indicator premium 3D */}
       <motion.div
