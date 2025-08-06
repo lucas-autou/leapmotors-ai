@@ -1,0 +1,393 @@
+import { useState, useEffect } from 'react';
+import { aiService } from './services/aiService';
+import { simpleSpeechService } from './services/speechService-simple';
+
+// Simplified Avatar component for testing
+const SimpleAvatar = ({ emotion = 'neutral', isSpeaking = false }) => {
+  return (
+    <div className="relative w-32 h-32 mx-auto mb-6">
+      <div className={`w-full h-full bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg ${
+        isSpeaking ? 'animate-pulse' : ''
+      }`}>
+        <div className="text-4xl">
+          {emotion === 'thinking' ? '🤔' : emotion === 'happy' ? '😊' : '🤖'}
+        </div>
+      </div>
+      <div className={`absolute bottom-0 right-0 w-6 h-6 rounded-full border-2 border-white ${
+        isSpeaking ? 'bg-red-500 animate-pulse' : 'bg-green-500'
+      }`}></div>
+    </div>
+  );
+};
+
+// Simple Chat Interface
+const SimpleChatInterface = ({ messages, onSendMessage, audioEnabled, onToggleAudio }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [showVoiceMenu, setShowVoiceMenu] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [currentVoice, setCurrentVoice] = useState(null);
+
+  useEffect(() => {
+    // Load available Brazilian voices
+    const loadVoices = () => {
+      const voices = simpleSpeechService.getBrazilianVoices();
+      setAvailableVoices(voices);
+      setCurrentVoice(simpleSpeechService.getCurrentVoice());
+    };
+    
+    setTimeout(loadVoices, 1000);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (inputValue.trim()) {
+      onSendMessage(inputValue.trim());
+      setInputValue('');
+    }
+  };
+
+  const handleVoiceChange = (voice) => {
+    simpleSpeechService.setVoice(voice);
+    setCurrentVoice(voice);
+    setShowVoiceMenu(false);
+    // Test the new voice
+    simpleSpeechService.speak('Olá! Esta é minha nova voz.');
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl h-96 flex flex-col">
+      <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-t-2xl">
+        <div className="flex items-center justify-between">
+          <h3 className="text-white font-semibold">LEAP AI</h3>
+          {availableVoices.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowVoiceMenu(!showVoiceMenu)}
+                className="text-white/80 hover:text-white text-sm bg-white/20 px-3 py-1 rounded-full"
+                title="Escolher voz"
+              >
+                🎤 {currentVoice?.name.split(' ')[0] || 'Voz'}
+              </button>
+              
+              {showVoiceMenu && (
+                <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border z-50 min-w-48">
+                  <div className="p-2">
+                    <p className="text-xs text-gray-600 mb-2">Escolha a voz:</p>
+                    {availableVoices.slice(0, 5).map((voice, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleVoiceChange(voice)}
+                        className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100 ${
+                          currentVoice?.name === voice.name ? 'bg-green-100 text-green-700' : 'text-gray-700'
+                        }`}
+                      >
+                        {voice.name}
+                        <span className="text-xs text-gray-500 block">{voice.lang}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex-1 p-4 overflow-y-auto space-y-3">
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                message.role === 'user'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {message.content}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Digite sua mensagem..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <button
+            type="button"
+            onClick={onToggleAudio}
+            className={`px-4 py-2 rounded-full transition-colors ${
+              audioEnabled ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+            }`}
+            title={audioEnabled ? 'Desativar áudio' : 'Ativar áudio'}
+          >
+            {audioEnabled ? '🔊' : '🔇'}
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+          >
+            Enviar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// Main App Component
+function AppHybrid() {
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Olá! Bem-vindo à Leapmotor! 😊 Eu sou a LEAP AI, sua assistente virtual. Como posso ajudá-lo hoje?'
+    }
+  ]);
+  const [avatarEmotion, setAvatarEmotion] = useState('neutral');
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Welcome message with audio
+  useEffect(() => {
+    if (audioEnabled && simpleSpeechService.isSupported()) {
+      setTimeout(() => {
+        setIsSpeaking(true);
+        setAvatarEmotion('happy');
+        simpleSpeechService.speak(
+          'Olá! Bem-vindo à Leapmotor! Eu sou a LEAP AI, sua assistente virtual.',
+          () => {
+            setIsSpeaking(false);
+            setAvatarEmotion('neutral');
+          }
+        );
+      }, 1500);
+    }
+
+    // Add test function to window for console testing
+    (window as any).testLeapPronunciation = () => {
+      simpleSpeechService.testLeapPronunciations();
+    };
+    console.log('💡 Para testar diferentes pronúncias de "Leap", digite: testLeapPronunciation()');
+  }, []);
+
+  const handleSendMessage = async (content) => {
+    // Add user message
+    setMessages(prev => [...prev, { role: 'user', content }]);
+    setAvatarEmotion('thinking');
+
+    try {
+      // Get AI response
+      const response = await aiService.getResponse(content, messages);
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      setAvatarEmotion('happy');
+      
+      // Speak response if audio is enabled
+      if (audioEnabled && simpleSpeechService.isSupported()) {
+        setIsSpeaking(true);
+        simpleSpeechService.speak(response, () => {
+          setIsSpeaking(false);
+        });
+      }
+      
+      setTimeout(() => setAvatarEmotion('neutral'), 2000);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Desculpe, tive um problema. Mas posso ajudá-lo com informações sobre nossos veículos! 😊' 
+      }]);
+      setAvatarEmotion('neutral');
+    }
+  };
+
+  const vehicleData = [
+    {
+      name: 'Novo B10',
+      type: 'SUV Compacto Elétrico',
+      price: 'R$ 239.990',
+      autonomy: '420 km',
+      image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=400&q=80',
+      color: 'bg-blue-500'
+    },
+    {
+      name: 'T03',
+      type: 'Hatch Urbano Elétrico',
+      price: 'R$ 169.990',
+      autonomy: '280 km',
+      image: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=400&q=80',
+      color: 'bg-green-500'
+    },
+    {
+      name: 'C10',
+      type: 'SUV Médio Premium',
+      price: 'R$ 299.990',
+      autonomy: '420 km',
+      image: 'https://images.unsplash.com/photo-1619317467384-7b3382953e9f?w=400&q=80',
+      color: 'bg-purple-500'
+    }
+  ];
+
+  const handleVehicleClick = (vehicle) => {
+    handleSendMessage(`Me conte mais sobre o ${vehicle.name}`);
+  };
+
+  const handleToggleAudio = () => {
+    if (audioEnabled) {
+      simpleSpeechService.stopSpeaking();
+      setIsSpeaking(false);
+    }
+    setAudioEnabled(!audioEnabled);
+  };
+
+  const services = [
+    { name: 'Leap Café', icon: '☕', desc: 'Relaxe com um café especial' },
+    { name: 'Test-drive', icon: '🚗', desc: 'Experimente nossos veículos' },
+    { name: 'Consultor', icon: '👨‍💼', desc: 'Fale com especialista' },
+    { name: 'Agendar', icon: '📅', desc: 'Marque sua visita' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-green-900">
+      {/* Header */}
+      <header className="bg-black/50 backdrop-blur border-b border-green-500/20">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-xl">L</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Leapmotor</h1>
+                <p className="text-green-400 text-sm">Recepção Digital com IA</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                Online
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left - Avatar and Chat */}
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20">
+              <SimpleAvatar emotion={avatarEmotion} isSpeaking={isSpeaking} />
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-white">LEAP AI</h3>
+                <p className="text-green-400 text-sm">
+                  {isSpeaking ? 'Falando...' : 'Sua assistente virtual'}
+                </p>
+              </div>
+            </div>
+
+            <SimpleChatInterface 
+              messages={messages} 
+              onSendMessage={handleSendMessage}
+              audioEnabled={audioEnabled}
+              onToggleAudio={handleToggleAudio}
+            />
+          </div>
+
+          {/* Right - Vehicles and Services */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Services */}
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6">Solicite um serviço</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {services.map((service, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSendMessage(`Gostaria de ${service.name.toLowerCase()}`)}
+                    className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur border border-green-500/30 rounded-2xl p-4 text-center hover:from-green-500/30 hover:to-green-600/30 transition-all hover:scale-105"
+                  >
+                    <div className="text-3xl mb-2">{service.icon}</div>
+                    <h4 className="text-white font-semibold">{service.name}</h4>
+                    <p className="text-green-400 text-xs mt-1">{service.desc}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Coffee Special Section */}
+              <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur border border-amber-500/30 rounded-2xl p-6">
+                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                  ☕ Leap Café - Menu Especial
+                </h3>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {['Expresso', 'Cappuccino', 'Café com Leite', 'Americano'].map((coffee) => (
+                    <button
+                      key={coffee}
+                      onClick={() => handleSendMessage(`Gostaria de um ${coffee}`)}
+                      className="bg-white/10 rounded-xl p-3 text-center hover:bg-white/20 transition-all"
+                    >
+                      <div className="text-2xl mb-1">☕</div>
+                      <p className="text-white text-sm">{coffee}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Vehicles */}
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6">Nossos Veículos</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                {vehicleData.map((vehicle, index) => (
+                  <div
+                    key={index}
+                    onClick={() => handleVehicleClick(vehicle)}
+                    className="bg-white/10 backdrop-blur rounded-2xl overflow-hidden border border-white/20 hover:border-green-500/50 cursor-pointer transition-all hover:scale-105"
+                  >
+                    <div className="h-40 bg-gradient-to-br from-gray-700 to-gray-800 relative overflow-hidden">
+                      <img 
+                        src={vehicle.image} 
+                        alt={vehicle.name}
+                        className="w-full h-full object-cover opacity-80"
+                      />
+                      <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        {vehicle.name}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-white font-bold text-lg mb-1">{vehicle.name}</h3>
+                      <p className="text-gray-400 text-sm mb-3">{vehicle.type}</p>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-green-400 text-xs">A partir de</p>
+                          <p className="text-white font-bold text-lg">{vehicle.price}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-gray-400 text-xs">Autonomia</p>
+                          <p className="text-green-400 font-semibold">{vehicle.autonomy}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default AppHybrid;

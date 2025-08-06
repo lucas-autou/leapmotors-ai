@@ -1,0 +1,52 @@
+import React from 'react';
+
+function AppSimple() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+          🚗 Leapmotor - Recepcionista Digital
+        </h1>
+        
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <div className="text-center">
+            <div className="w-32 h-32 bg-gradient-to-br from-green-400 to-green-600 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <span className="text-white text-4xl">🤖</span>
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">LEAP AI</h2>
+            <p className="text-gray-600 mb-6">Sua assistente virtual está pronta!</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-blue-500 text-white rounded-2xl p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Novo B10</h3>
+            <p className="text-sm opacity-90">SUV Compacto Elétrico</p>
+            <p className="text-lg font-bold mt-4">R$ 239.990</p>
+          </div>
+          
+          <div className="bg-green-500 text-white rounded-2xl p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">T03</h3>
+            <p className="text-sm opacity-90">Hatch Urbano Elétrico</p>
+            <p className="text-lg font-bold mt-4">R$ 169.990</p>
+          </div>
+          
+          <div className="bg-purple-500 text-white rounded-2xl p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">C10</h3>
+            <p className="text-sm opacity-90">SUV Médio Premium</p>
+            <p className="text-lg font-bold mt-4">R$ 299.990</p>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <p className="text-gray-600">
+            ✅ Projeto configurado com sucesso!<br/>
+            🔧 Versão completa com avatar e IA está funcionando
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default AppSimple;
