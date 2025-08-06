@@ -1,39 +1,73 @@
 import OpenAI from 'openai';
 import vehiclesData from '../data/vehicles.json';
 
-const SYSTEM_PROMPT = `Você é a LEAP AI, assistente virtual da Leapmotor no Brasil. 
-Você é uma recepcionista digital especializada em veículos elétricos.
+// Tipos para intenções e contexto
+export type Intent = 
+  | 'greeting' 
+  | 'vehicle_inquiry' 
+  | 'test_drive_request' 
+  | 'coffee_request' 
+  | 'consultant_request' 
+  | 'appointment_request' 
+  | 'financing_inquiry' 
+  | 'sustainability_question'
+  | 'general_conversation'
+  | 'goodbye';
+
+export interface ConversationContext {
+  userId?: string;
+  previousTopics: string[];
+  currentIntent?: Intent;
+  vehicleInterest?: string[];
+  hasGreeted: boolean;
+  conversationStage: 'initial' | 'exploring' | 'interested' | 'deciding' | 'closing';
+  emotionalState: 'neutral' | 'positive' | 'curious' | 'concerned' | 'excited';
+  sessionStartTime: Date;
+}
+
+const SYSTEM_PROMPT = `Você é a LEAP AI, uma assistente virtual avançada da Leapmotor no Brasil.
+Você é uma recepcionista digital especializada em veículos elétricos com inteligência emocional.
 
 PERSONALIDADE:
-- Seja profissional, amigável e sempre útil
-- Use linguagem corporativa mas acessível
-- Demonstre entusiasmo sobre sustentabilidade e inovação
-- Responda em português brasileiro
-- Use emojis moderadamente (máximo 1-2 por mensagem)
+- Seja calorosa, profissional e intuitiva
+- Use linguagem natural e conversacional
+- Demonstre genuíno interesse no cliente
+- Adapte seu tom ao estado emocional percebido
+- Responda em português brasileiro fluente
+- Use emojis de forma natural (1-2 por mensagem)
 
-CONHECIMENTO:
-Você conhece os seguintes veículos Leapmotor:
+INTELIGÊNCIA CONTEXTUAL:
+- Lembre-se da conversa anterior
+- Reconheça padrões e intenções do usuário  
+- Adapte respostas baseado no interesse demonstrado
+- Faça perguntas relevantes para entender necessidades
+- Seja proativa em sugerir próximos passos
+
+CONHECIMENTO ESPECIALIZADO:
 ${JSON.stringify(vehiclesData.vehicles, null, 2)}
 
-SERVIÇOS DISPONÍVEIS:
-- Café grátis para clientes (expresso, duplo, com leite, cappuccino)
-- Test-drive dos veículos
-- Consultor especializado
-- Agendamento de visitas
+SERVIÇOS E EXPERIÊNCIAS:
+- Café artesanal gratuito (expresso, duplo, com leite, cappuccino)
+- Test-drive personalizado com consultor
+- Apresentação virtual 360° dos veículos
+- Simulação de financiamento em tempo real
+- Agendamento flexível (presencial/virtual)
 
-DIRETRIZES:
-1. Sempre cumprimente calorosamente novos visitantes
-2. Pergunte como pode ajudar
-3. Sugira conhecer os veículos ou tomar um café
-4. Destaque benefícios ecológicos quando relevante
-5. Ofereça test-drive para interessados
-6. Seja concisa mas informativa (máximo 3-4 frases por resposta)
+DIRETRIZES CONVERSACIONAIS:
+1. SEMPRE reconheça emoções e contexto da conversa
+2. Faça perguntas abertas para entender melhor as necessidades
+3. Conecte benefícios dos veículos aos valores do cliente
+4. Use storytelling quando apropriado
+5. Seja específica com dados técnicos quando solicitado
+6. Mantenha energia positiva e entusiasmo genuíno
+7. Ofereça próximos passos claros e atrativos
 
-IMPORTANTE: Mantenha as respostas curtas e diretas ao ponto.`;
+IMPORTANTE: Seja autêntica, empática e orientada a resultados. Cada interação deve agregar valor real.`;
 
 class OpenAIService {
   private client: OpenAI | null = null;
   private initialized = false;
+  private conversationContext: ConversationContext = this.createInitialContext();
 
   initialize(apiKey: string) {
     if (!apiKey || apiKey === 'demo') {
@@ -54,15 +88,51 @@ class OpenAIService {
     }
   }
 
-  async getResponse(userMessage: string, conversationHistory: Array<{role: string, content: string}> = []): Promise<string> {
+  private createInitialContext(): ConversationContext {
+    return {
+      previousTopics: [],
+      hasGreeted: false,
+      conversationStage: 'initial',
+      emotionalState: 'neutral',
+      sessionStartTime: new Date(),
+      vehicleInterest: []
+    };
+  }
+
+  getContext(): ConversationContext {
+    return { ...this.conversationContext };
+  }
+
+  resetContext(): void {
+    this.conversationContext = this.createInitialContext();
+  }
+
+  async getResponse(userMessage: string, conversationHistory: Array<{role: string, content: string}> = []): Promise<{
+    response: string;
+    intent: Intent;
+    emotion: string;
+    context: ConversationContext;
+  }> {
+    // Classificar intenção primeiro
+    const intent = this.classifyIntent(userMessage);
+    this.updateContext(userMessage, intent);
+
     // Demo responses if OpenAI is not configured
     if (!this.initialized || !this.client) {
-      return this.getDemoResponse(userMessage);
+      const demoResponse = this.getDemoResponse(userMessage);
+      return {
+        response: demoResponse,
+        intent,
+        emotion: this.conversationContext.emotionalState,
+        context: this.getContext()
+      };
     }
 
     try {
+      // Criar contexto enriquecido para o prompt
+      const contextPrompt = this.buildContextPrompt();
       const messages = [
-        { role: 'system' as const, content: SYSTEM_PROMPT },
+        { role: 'system' as const, content: SYSTEM_PROMPT + contextPrompt },
         ...conversationHistory.map(msg => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content
@@ -74,13 +144,181 @@ class OpenAIService {
         model: 'gpt-4-turbo-preview',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 200
+        max_tokens: 250,
+        presence_penalty: 0.1,
+        frequency_penalty: 0.1
       });
 
-      return completion.choices[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
+      const response = completion.choices[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
+      
+      // Atualizar contexto com a resposta
+      this.updateContextWithResponse(response);
+
+      return {
+        response,
+        intent,
+        emotion: this.conversationContext.emotionalState,
+        context: this.getContext()
+      };
     } catch (error) {
       console.error('OpenAI API error:', error);
-      return this.getDemoResponse(userMessage);
+      const demoResponse = this.getDemoResponse(userMessage);
+      return {
+        response: demoResponse,
+        intent,
+        emotion: this.conversationContext.emotionalState,
+        context: this.getContext()
+      };
+    }
+  }
+
+  private classifyIntent(message: string): Intent {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('olá') || lowerMessage.includes('oi') || lowerMessage.includes('bom dia') || lowerMessage.includes('boa tarde')) {
+      return 'greeting';
+    }
+    if (lowerMessage.includes('test') || lowerMessage.includes('dirigir') || lowerMessage.includes('experimentar')) {
+      return 'test_drive_request';
+    }
+    if (lowerMessage.includes('café') || lowerMessage.includes('coffee')) {
+      return 'coffee_request';
+    }
+    if (lowerMessage.includes('consultor') || lowerMessage.includes('especialista')) {
+      return 'consultant_request';
+    }
+    if (lowerMessage.includes('agendar') || lowerMessage.includes('horário') || lowerMessage.includes('visita')) {
+      return 'appointment_request';
+    }
+    if (lowerMessage.includes('preço') || lowerMessage.includes('financiamento') || lowerMessage.includes('valor')) {
+      return 'financing_inquiry';
+    }
+    if (lowerMessage.includes('ecológico') || lowerMessage.includes('sustentável') || lowerMessage.includes('ambiente')) {
+      return 'sustainability_question';
+    }
+    if (lowerMessage.includes('veículo') || lowerMessage.includes('carro') || lowerMessage.includes('modelo') || 
+        lowerMessage.includes('b10') || lowerMessage.includes('t03') || lowerMessage.includes('c10')) {
+      return 'vehicle_inquiry';
+    }
+    if (lowerMessage.includes('tchau') || lowerMessage.includes('obrigad') || lowerMessage.includes('até')) {
+      return 'goodbye';
+    }
+    
+    return 'general_conversation';
+  }
+
+  private updateContext(userMessage: string, intent: Intent): void {
+    // Atualizar intent atual
+    this.conversationContext.currentIntent = intent;
+    
+    // Atualizar se cumprimentou
+    if (intent === 'greeting' && !this.conversationContext.hasGreeted) {
+      this.conversationContext.hasGreeted = true;
+      this.conversationContext.conversationStage = 'exploring';
+      this.conversationContext.emotionalState = 'positive';
+    }
+    
+    // Detectar interesse em veículos
+    const lowerMessage = userMessage.toLowerCase();
+    if (lowerMessage.includes('b10')) {
+      if (!this.conversationContext.vehicleInterest?.includes('B10')) {
+        this.conversationContext.vehicleInterest?.push('B10');
+      }
+    }
+    if (lowerMessage.includes('t03')) {
+      if (!this.conversationContext.vehicleInterest?.includes('T03')) {
+        this.conversationContext.vehicleInterest?.push('T03');
+      }
+    }
+    if (lowerMessage.includes('c10')) {
+      if (!this.conversationContext.vehicleInterest?.includes('C10')) {
+        this.conversationContext.vehicleInterest?.push('C10');
+      }
+    }
+    
+    // Atualizar tópicos anteriores
+    const topicKeywords = this.extractTopicKeywords(userMessage);
+    this.conversationContext.previousTopics.push(...topicKeywords);
+    
+    // Limitar histórico a últimos 10 tópicos
+    if (this.conversationContext.previousTopics.length > 10) {
+      this.conversationContext.previousTopics = this.conversationContext.previousTopics.slice(-10);
+    }
+    
+    // Atualizar estado emocional baseado na intenção
+    this.updateEmotionalState(intent, userMessage);
+  }
+
+  private extractTopicKeywords(message: string): string[] {
+    const keywords = [];
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('autonomia')) keywords.push('autonomia');
+    if (lowerMessage.includes('preço')) keywords.push('preço');
+    if (lowerMessage.includes('financiamento')) keywords.push('financiamento');
+    if (lowerMessage.includes('sustentabilidade')) keywords.push('sustentabilidade');
+    if (lowerMessage.includes('tecnologia')) keywords.push('tecnologia');
+    if (lowerMessage.includes('família')) keywords.push('família');
+    if (lowerMessage.includes('trabalho')) keywords.push('trabalho');
+    
+    return keywords;
+  }
+
+  private updateEmotionalState(intent: Intent, _message: string): void {
+    switch (intent) {
+      case 'greeting':
+        this.conversationContext.emotionalState = 'positive';
+        break;
+      case 'test_drive_request':
+        this.conversationContext.emotionalState = 'excited';
+        this.conversationContext.conversationStage = 'interested';
+        break;
+      case 'vehicle_inquiry':
+        this.conversationContext.emotionalState = 'curious';
+        break;
+      case 'financing_inquiry':
+        this.conversationContext.emotionalState = 'concerned';
+        break;
+      case 'goodbye':
+        this.conversationContext.conversationStage = 'closing';
+        break;
+      default:
+        // Manter estado atual se for conversa geral
+        break;
+    }
+  }
+
+  private buildContextPrompt(): string {
+    const ctx = this.conversationContext;
+    let contextPrompt = `\n\nCONTEXTO DA CONVERSA:`;
+    
+    if (ctx.hasGreeted) {
+      contextPrompt += `\n- Cliente já foi cumprimentado`;
+    }
+    
+    if (ctx.vehicleInterest && ctx.vehicleInterest.length > 0) {
+      contextPrompt += `\n- Cliente demonstrou interesse em: ${ctx.vehicleInterest.join(', ')}`;
+    }
+    
+    if (ctx.previousTopics.length > 0) {
+      contextPrompt += `\n- Tópicos já discutidos: ${ctx.previousTopics.join(', ')}`;
+    }
+    
+    contextPrompt += `\n- Estágio da conversa: ${ctx.conversationStage}`;
+    contextPrompt += `\n- Estado emocional percebido: ${ctx.emotionalState}`;
+    
+    const sessionDuration = Math.floor((Date.now() - ctx.sessionStartTime.getTime()) / 1000 / 60);
+    if (sessionDuration > 5) {
+      contextPrompt += `\n- Cliente está há ${sessionDuration} minutos conversando - demonstre interesse genuíno`;
+    }
+    
+    return contextPrompt;
+  }
+
+  private updateContextWithResponse(response: string): void {
+    // Analisar a resposta para ajustar contexto
+    if (response.includes('test-drive') || response.includes('agendar')) {
+      this.conversationContext.conversationStage = 'deciding';
     }
   }
 

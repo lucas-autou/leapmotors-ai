@@ -1,43 +1,70 @@
 import { useState, useEffect } from 'react';
-import { Avatar } from './components/Avatar';
+import { Avatar, type AvatarEmotion } from './components/Avatar';
 import { ChatInterface } from './components/ChatInterface';
 import { VehicleCards } from './components/VehicleCards';
 import { ServiceOptions } from './components/ServiceOptions';
-import { openAIService } from './services/openai';
-import { speechService } from './services/speech';
-import { Message, Vehicle } from './types';
+import { openAIService, type Intent } from './services/openai';
+import { openaiSpeechService } from './services/openaiSpeech';
+import type { Message, Vehicle } from './types';
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [avatarEmotion, setAvatarEmotion] = useState<'neutral' | 'happy' | 'thinking'>('neutral');
+  const [avatarEmotion, setAvatarEmotion] = useState<AvatarEmotion>('welcoming');
+  const [currentIntent, setCurrentIntent] = useState<Intent>('general_conversation');
+  const [isThinking, setIsThinking] = useState(false);
 
   useEffect(() => {
-    // Initialize OpenAI with demo mode (no API key required for demo)
-    openAIService.initialize('demo');
+    // Initialize services - agora só precisamos da chave OpenAI!
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY || 'demo';
+    
+    console.log('🚀 Inicializando LEAP AI v2.0 com OpenAI...');
+    openAIService.initialize(apiKey);
+    openaiSpeechService.initialize(apiKey);
     
     // Send welcome message
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: 'Olá! Bem-vindo à Leapmotor! 😊 Eu sou a LEAP AI, sua assistente virtual. Como posso ajudá-lo hoje?',
+      content: 'Olá! Bem-vindo à Leapmotor! 🌟 Eu sou a LEAP AI v2.0, sua assistente virtual super inteligente com voz neural OpenAI! Estou aqui para tornar sua experiência única e especial. Como posso começar a ajudá-lo hoje?',
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
+    setAvatarEmotion('welcoming');
     
+    // Speak welcome message with emotion
     if (audioEnabled) {
-      speakMessage(welcomeMessage.content);
+      speakMessage(welcomeMessage.content, 'welcoming');
     }
-  }, []);
+  }, [audioEnabled]);
 
-  const speakMessage = (text: string) => {
+  const speakMessage = (text: string, emotion: AvatarEmotion = 'happy') => {
     setIsSpeaking(true);
-    setAvatarEmotion('happy');
-    speechService.speak(text, () => {
+    setAvatarEmotion(emotion);
+    
+    // Mapear emoção do avatar para opções de voz OpenAI
+    const emotionMap: Record<AvatarEmotion, 'neutral' | 'happy' | 'excited' | 'concerned' | 'cheerful' | 'friendly'> = {
+      'neutral': 'neutral',
+      'happy': 'happy',
+      'thinking': 'neutral',
+      'excited': 'excited',
+      'curious': 'friendly',
+      'concerned': 'concerned',
+      'welcoming': 'cheerful'
+    };
+
+    console.log(`🎙️ Falando com emoção: ${emotion} -> ${emotionMap[emotion]}`);
+
+    openaiSpeechService.speak(text, {
+      emotion: emotionMap[emotion],
+      speed: 0.95, // Velocidade otimizada para clareza
+      voice: 'nova' // Voz feminina energética por padrão
+    }, () => {
       setIsSpeaking(false);
       setAvatarEmotion('neutral');
+      console.log('🔇 Fala concluída');
     });
   };
 
@@ -51,52 +78,129 @@ function App() {
     };
     setMessages(prev => [...prev, userMessage]);
     
-    // Set thinking emotion
+    // Set thinking state
+    setIsThinking(true);
     setAvatarEmotion('thinking');
     
-    // Get AI response
+    // Get AI response with enhanced context
     const conversationHistory = messages.map(m => ({
       role: m.role,
       content: m.content
     }));
     
-    const response = await openAIService.getResponse(content, conversationHistory);
-    
-    // Add assistant response
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: response,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, assistantMessage]);
-    
-    // Speak response if audio is enabled
-    if (audioEnabled) {
-      speakMessage(response);
-    } else {
-      setAvatarEmotion('neutral');
+    try {
+      const aiResponse = await openAIService.getResponse(content, conversationHistory);
+      
+      // Update states based on AI response
+      setCurrentIntent(aiResponse.intent);
+      setIsThinking(false);
+      
+      // Map intent to emotion
+      const intentToEmotion: Record<Intent, AvatarEmotion> = {
+        'greeting': 'welcoming',
+        'vehicle_inquiry': 'curious',
+        'test_drive_request': 'excited',
+        'coffee_request': 'happy',
+        'consultant_request': 'happy',
+        'appointment_request': 'excited',
+        'financing_inquiry': 'concerned',
+        'sustainability_question': 'curious',
+        'general_conversation': 'neutral',
+        'goodbye': 'happy'
+      };
+      
+      const responseEmotion = intentToEmotion[aiResponse.intent] || 'neutral';
+      setAvatarEmotion(responseEmotion);
+      
+      // Add assistant response
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: aiResponse.response,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Speak response with appropriate emotion
+      if (audioEnabled) {
+        speakMessage(aiResponse.response, responseEmotion);
+      } else {
+        // Se não for falar, mantém emoção por um tempo
+        setTimeout(() => setAvatarEmotion('neutral'), 3000);
+      }
+    } catch (error) {
+      console.error('Erro ao processar mensagem:', error);
+      setIsThinking(false);
+      setAvatarEmotion('concerned');
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Desculpe, tive um problema para processar sua mensagem. Pode tentar novamente? 😅',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      
+      if (audioEnabled) {
+        speakMessage(errorMessage.content, 'concerned');
+      }
     }
   };
 
   const handleToggleListening = () => {
     if (isListening) {
-      speechService.stopListening();
+      openaiSpeechService.stopListening();
       setIsListening(false);
+      setAvatarEmotion('neutral');
+      console.log('🎤 Parou de escutar');
     } else {
       setIsListening(true);
-      speechService.startListening(
-        (transcript) => {
+      setAvatarEmotion('curious'); // Mostra que está prestando atenção
+      console.log('🎤 Começou a escutar...');
+      
+      openaiSpeechService.startListening(
+        (transcript, confidence) => {
           setIsListening(false);
-          handleSendMessage(transcript);
+          console.log(`✅ Reconhecido (${Math.round(confidence * 100)}%): "${transcript}"`);
+          
+          // Processar com confiança mais baixa pois OpenAI/Web Speech são bons
+          if (confidence > 0.2) {
+            handleSendMessage(transcript);
+          } else {
+            setAvatarEmotion('concerned');
+            console.log('❌ Confiança muito baixa, ignorando transcrição');
+            
+            const errorMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `Desculpe, não consegui entender muito bem. Pode repetir? 🎤`,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+            
+            setTimeout(() => setAvatarEmotion('neutral'), 2000);
+          }
         },
         (error) => {
-          console.error('Speech recognition error:', error);
+          console.error('❌ Erro reconhecimento de voz:', error);
           setIsListening(false);
-          alert(error);
+          setAvatarEmotion('concerned');
+          
+          // Mostrar erro de forma mais amigável
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Ops! ${error} 🎤 Pode tentar novamente ou digitar sua mensagem.`,
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          
+          setTimeout(() => setAvatarEmotion('neutral'), 3000);
         },
         () => {
           setIsListening(false);
+          setAvatarEmotion('neutral');
+          console.log('🎤 Reconhecimento finalizado');
         }
       );
     }
@@ -104,11 +208,18 @@ function App() {
 
   const handleToggleSpeaking = () => {
     if (audioEnabled) {
-      speechService.stopSpeaking();
+      openaiSpeechService.stopSpeaking();
       setAudioEnabled(false);
       setIsSpeaking(false);
+      setAvatarEmotion('neutral');
+      console.log('🔇 Áudio desativado');
     } else {
       setAudioEnabled(true);
+      setAvatarEmotion('happy');
+      console.log('🔊 Áudio ativado - usando OpenAI TTS');
+      
+      // Breve confirmação de que o áudio foi ativado
+      setTimeout(() => setAvatarEmotion('neutral'), 1500);
     }
   };
 
@@ -191,10 +302,32 @@ function App() {
           <div className="lg:col-span-1 space-y-6">
             {/* Avatar Card */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <Avatar isSpeaking={isSpeaking} emotion={avatarEmotion} />
+              <Avatar 
+                isSpeaking={isSpeaking} 
+                emotion={avatarEmotion} 
+                isListening={isListening}
+                isIdle={!isSpeaking && !isListening && !isThinking}
+              />
               <div className="mt-4 text-center">
-                <h3 className="text-xl font-semibold text-gray-800">LEAP AI</h3>
-                <p className="text-sm text-gray-600">Sua assistente virtual</p>
+                <h3 className="text-xl font-semibold text-gray-800">LEAP AI v2.0</h3>
+                <p className="text-sm text-gray-600">
+                  {isThinking ? 'Pensando...' : 
+                   isSpeaking ? 'Falando...' :
+                   isListening ? 'Escutando...' :
+                   'Sua assistente virtual inteligente'}
+                </p>
+                {/* Status indicator adicional */}
+                <div className="mt-2 flex justify-center items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isThinking ? 'bg-blue-400 animate-pulse' :
+                    isSpeaking ? 'bg-green-500 animate-pulse' :
+                    isListening ? 'bg-purple-500 animate-pulse' :
+                    'bg-gray-300'
+                  }`} />
+                  <span className="text-xs text-gray-500 capitalize">
+                    {currentIntent.replace('_', ' ')}
+                  </span>
+                </div>
               </div>
             </div>
 

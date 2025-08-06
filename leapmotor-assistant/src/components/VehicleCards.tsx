@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Battery, Zap, Car, ChevronRight } from 'lucide-react';
 import vehiclesData from '../data/vehicles.json';
-import { Vehicle } from '../types';
+import type { Vehicle } from '../types';
 
 interface VehicleCardsProps {
   onSelectVehicle: (vehicle: Vehicle) => void;

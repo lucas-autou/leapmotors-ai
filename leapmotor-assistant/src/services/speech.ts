@@ -93,12 +93,12 @@ class SpeechService {
       return;
     }
 
-    this.recognition.onresult = (event) => {
+    this.recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       onResult(transcript);
     };
 
-    this.recognition.onerror = (event) => {
+    this.recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event);
       let errorMessage = 'Erro no reconhecimento de voz';
       

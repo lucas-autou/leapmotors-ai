@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-import { Message } from '../types';
+import type { Message } from '../types';
 
 interface ChatInterfaceProps {
   messages: Message[];
