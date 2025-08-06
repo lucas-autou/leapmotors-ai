@@ -29,7 +29,11 @@ export const Avatar: React.FC<AvatarProps> = ({
   const [breathingPhase, setBreathingPhase] = useState(0);
   const [idleMovement, setIdleMovement] = useState({ x: 0, y: 0 });
   const [videoLoaded, setVideoLoaded] = useState(true); // Start as true to avoid initial loading screen
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0); // For smooth crossfade
+  const [previousVideoPath, setPreviousVideoPath] = useState<string>('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const videoRef1 = useRef<HTMLVideoElement>(null);
+  const videoRef2 = useRef<HTMLVideoElement>(null);
   const transitionTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Paths dos vídeos - agora com 3 estados
@@ -53,41 +57,64 @@ export const Avatar: React.FC<AvatarProps> = ({
   
   const currentVideoPath = getVideoPath();
 
-  // Preload do vídeo com timeout de fallback
+  // Get current and next video refs for smooth crossfading
+  const getCurrentVideoRef = () => currentVideoIndex === 0 ? videoRef1 : videoRef2;
+  const getNextVideoRef = () => currentVideoIndex === 0 ? videoRef2 : videoRef1;
+
+  // Preload both videos and handle smooth transitions
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    const currentRef = getCurrentVideoRef();
+    const nextRef = getNextVideoRef();
     
-    if (videoRef.current) {
-      const handleLoadedData = () => {
-        setVideoLoaded(true);
-        console.log('🎥 Vídeo carregado e pronto:', currentVideoPath);
-        clearTimeout(timeoutId);
-      };
+    // If video path changed, start transition
+    if (currentVideoPath !== previousVideoPath && previousVideoPath !== '') {
+      console.log(`🎬 Transitioning from ${previousVideoPath} to ${currentVideoPath}`);
       
-      const handleError = (e: Event) => {
-        console.error('❌ Erro ao carregar vídeo:', e);
-        setVideoLoaded(true); // Continua mesmo com erro para não travar
-        clearTimeout(timeoutId);
-      };
-      
-      videoRef.current.addEventListener('loadeddata', handleLoadedData);
-      videoRef.current.addEventListener('error', handleError);
-      
-      // Timeout de 3 segundos para forçar carregamento caso o evento não dispare
-      timeoutId = setTimeout(() => {
-        console.log('⏰ Timeout do vídeo - forçando carregamento');
-        setVideoLoaded(true);
-      }, 3000);
-      
-      return () => {
-        if (videoRef.current) {
-          videoRef.current.removeEventListener('loadeddata', handleLoadedData);
-          videoRef.current.removeEventListener('error', handleError);
+      if (nextRef.current) {
+        setIsTransitioning(true);
+        
+        // Preload the new video
+        nextRef.current.src = currentVideoPath;
+        nextRef.current.currentTime = 0;
+        
+        const handleLoadedData = () => {
+          // Start playing the new video
+          nextRef.current?.play().then(() => {
+            // After new video starts, fade out old and fade in new
+            setTimeout(() => {
+              setCurrentVideoIndex(prev => prev === 0 ? 1 : 0);
+              setIsTransitioning(false);
+              console.log('✨ Smooth transition completed');
+            }, 100);
+          }).catch(e => {
+            console.error('Error playing new video:', e);
+            setIsTransitioning(false);
+          });
+        };
+        
+        nextRef.current.addEventListener('loadeddata', handleLoadedData, { once: true });
+      }
+    } else {
+      // First load or same video
+      if (currentRef.current) {
+        const shouldUpdateSrc = !currentRef.current.src.includes(currentVideoPath.split('/').pop() || '');
+        if (shouldUpdateSrc) {
+          console.log(`🎬 Loading initial video: ${currentVideoPath}`);
+          currentRef.current.src = currentVideoPath;
+          currentRef.current.currentTime = 0;
+          
+          // Add small delay for smooth initial load
+          setTimeout(() => {
+            currentRef.current?.play().catch(e => {
+              console.error('Error playing video:', e);
+            });
+          }, 100);
         }
-        clearTimeout(timeoutId);
-      };
+      }
     }
-  }, [currentVideoPath]); // Recarrega quando vídeo muda
+    
+    setPreviousVideoPath(currentVideoPath);
+  }, [currentVideoPath]);
 
   // Sistema inteligente de seleção de expressão
   useEffect(() => {
@@ -106,40 +133,14 @@ export const Avatar: React.FC<AvatarProps> = ({
     setCurrentExpression(getExpressionForEmotion(emotion, isSpeaking));
   }, [emotion, isSpeaking]);
 
-  // Controle de transição entre diferentes vídeos
+  // Clean up transition timeouts
   useEffect(() => {
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current);
-    }
-
-    // Vídeo sempre visível - apenas muda o src
-    
-    if (videoRef.current) {
-      // Reinicia vídeo quando mudança de estado
-      videoRef.current.currentTime = 0;
-      
-      // Inicia reprodução com delay apropriado
-      const playDelay = isSpeaking ? 800 : 200; // Maior delay quando falando para sincronizar com áudio
-      
-      transitionTimeoutRef.current = setTimeout(() => {
-        videoRef.current?.play().catch(e => {
-          console.error('Erro ao reproduzir vídeo:', e);
-          // Retry após delay
-          setTimeout(() => {
-            videoRef.current?.play().catch(e2 => {
-              console.error('Segunda tentativa falhou:', e2);
-            });
-          }, 100);
-        });
-      }, playDelay);
-    }
-
     return () => {
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
       }
     };
-  }, [isSpeaking, currentVideoPath]); // Adiciona currentVideoPath para reagir a mudanças de vídeo
+  }, []);
 
   // Sistema de respiração realista
   useEffect(() => {
@@ -274,23 +275,39 @@ export const Avatar: React.FC<AvatarProps> = ({
           ease: "easeInOut"
         }}
       >        
-        {/* Vídeo principal - agora sempre visível com 3 estados diferentes */}
+        {/* Dual Video System for Smooth Crossfading */}
         <video
-          ref={videoRef}
-          src={currentVideoPath}
+          ref={videoRef1}
           className={`absolute ${avatarSize.video} object-cover rounded-2xl`}
           style={{
-            opacity: 1, // Sempre visível
-            transition: 'opacity 400ms ease-in-out',
+            opacity: currentVideoIndex === 0 ? 1 : 0,
+            transition: 'opacity 600ms ease-in-out',
             willChange: 'opacity',
             pointerEvents: 'none',
+            zIndex: currentVideoIndex === 0 ? 2 : 1,
           }}
           loop
           muted
           playsInline
           autoPlay={false}
           preload="auto"
-          key={currentVideoPath} // Força re-render quando vídeo muda
+        />
+        
+        <video
+          ref={videoRef2}
+          className={`absolute ${avatarSize.video} object-cover rounded-2xl`}
+          style={{
+            opacity: currentVideoIndex === 1 ? 1 : 0,
+            transition: 'opacity 600ms ease-in-out',
+            willChange: 'opacity',
+            pointerEvents: 'none',
+            zIndex: currentVideoIndex === 1 ? 2 : 1,
+          }}
+          loop
+          muted
+          playsInline
+          autoPlay={false}
+          preload="auto"
         />
       </motion.div>
 

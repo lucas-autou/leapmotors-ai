@@ -4,6 +4,7 @@ import { ChatInterface } from './components/ChatInterface';
 import { VehicleCards } from './components/VehicleCards';
 import { ServiceOptions } from './components/ServiceOptions';
 import { AIInsights } from './components/AIInsights';
+import { WelcomeOverlay } from './components/WelcomeOverlay';
 import { openAIService, type Intent } from './services/openai';
 import { openaiSpeechService } from './services/openaiSpeech';
 import type { Message, Vehicle } from './types';
@@ -12,48 +13,49 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPreparingToSpeak, setIsPreparingToSpeak] = useState(false); // New state for audio sync
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [avatarEmotion, setAvatarEmotion] = useState<AvatarEmotion>('welcoming');
   const [currentIntent, setCurrentIntent] = useState<Intent>('general_conversation');
   const [isThinking, setIsThinking] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false); // New state for user interaction
   const [isIntroSpeech, setIsIntroSpeech] = useState(true); // Flag para saber se é a fala de intro
 
   useEffect(() => {
     // Evita execução dupla
     if (hasInitialized) return;
-    
+
     // Initialize services - agora só precisamos da chave OpenAI!
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY || 'demo';
-    
+
     console.log('🚀 Inicializando LEAP AI v2.0 com OpenAI...');
     openAIService.initialize(apiKey);
     openaiSpeechService.initialize(apiKey);
-    
+
     // Send welcome message
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: 'Olá! Bem-vindo à Leapmotor! Eu sou a Lea, sua assistente virtual. Como posso ajudá-lo hoje?',
+      content: 'Olá! Bem-vindo à Leapmotor! Eu sou a Lea, sua assistente virtual. Estou aqui para te ajudar com tudo que precisar!',
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
     setAvatarEmotion('welcoming');
-    
+
     // Marca como inicializado ANTES de falar para evitar duplicação
     setHasInitialized(true);
-    
-    // Fala automaticamente a mensagem de boas-vindas ao abrir (intro)
-    setTimeout(() => {
-      speakMessage(welcomeMessage.content, 'welcoming', true); // true = é intro
-    }, 1000); // Delay maior para garantir que OpenAI TTS está completamente inicializado
   }, [hasInitialized]); // Adiciona hasInitialized como dependência
 
+  // Remove automatic speech - user can interact manually if they want to hear LEA speak
+
   const speakMessage = (text: string, emotion: AvatarEmotion = 'happy', isIntro: boolean = false) => {
-    // Começa a mostrar vídeo imediatamente
-    setIsSpeaking(true);
-    setAvatarEmotion(emotion);
+    // Fase 1: Preparando para falar (mostra estado "thinking")
+    setIsPreparingToSpeak(true);
+    setAvatarEmotion('thinking'); // Mostra estado de processamento
     setIsIntroSpeech(isIntro); // Define se é fala de intro
+    
+    console.log('🎬 Preparando para falar - aguardando sincronização de áudio...');
 
     // Mapear emoção do avatar para opções de voz OpenAI
     const emotionMap: Record<AvatarEmotion, 'neutral' | 'happy' | 'excited' | 'concerned' | 'cheerful' | 'friendly'> = {
@@ -72,13 +74,15 @@ function App() {
       'satisfied': 'happy'
     };
 
-    console.log(`🎙️ Falando com emoção: ${emotion} -> ${emotionMap[emotion]}`);
+    console.log(`🎙️ Processando TTS com emoção: ${emotion} -> ${emotionMap[emotion]}`);
 
     openaiSpeechService.speak(text, {
       emotion: emotionMap[emotion],
       speed: 1.0, // Velocidade normal para naturalidade
       voice: 'shimmer' // Voz feminina suave e fluida
-    }, () => {
+    }, 
+    // onEnd callback
+    () => {
       // Delay maior para garantir que o vídeo continue até o fim do áudio
       setTimeout(() => {
         setIsSpeaking(false);
@@ -86,6 +90,14 @@ function App() {
         setIsIntroSpeech(false); // Sempre volta para modo conversação após qualquer fala
         console.log('🔇 Fala concluída - transição suave para imagem');
       }, 500); // Delay maior para sincronizar com fim real do áudio
+    }, 
+    // onAudioStart callback - SINCRONIZAÇÃO PERFEITA!
+    () => {
+      // Fase 2: Áudio começou - agora sim mostra vídeo de fala
+      setIsPreparingToSpeak(false);
+      setIsSpeaking(true);
+      setAvatarEmotion(emotion);
+      console.log('🎬✅ Áudio sincronizado! Vídeo de fala iniciado com emoção:', emotion);
     });
   };
 
@@ -291,6 +303,88 @@ function App() {
     handleSendMessage(message);
   };
 
+  const handleStartExperience = () => {
+    setHasUserInteracted(true);
+    console.log('✨ Usuário interagiu - desbloqueando áudio e iniciando experiência');
+
+    // Agora que o usuário interagiu, pode falar a mensagem de boas-vindas
+    setTimeout(() => {
+      if (messages.length > 0) {
+        const welcomeMessage = messages[0]; // First message is the welcome message
+        if (welcomeMessage && welcomeMessage.role === 'assistant') {
+          speakMessage(welcomeMessage.content, 'welcoming', true); // true = é intro
+        }
+      }
+    }, 1000); // Delay para transição suave do overlay
+  };
+
+  // Show welcome overlay if user hasn't interacted yet
+  if (!hasUserInteracted) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-leap-dark via-leap-surface to-leap-dark">
+          {/* Main app content (blurred in background) */}
+          <div className="opacity-30 blur-sm pointer-events-none">
+            {/* Header Premium Compacto */}
+            <header className="bg-leap-surface/80 backdrop-blur-xl border-b border-leap-border">
+              <div className="container mx-auto px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-leap-green-primary to-leap-green-neon rounded-xl flex items-center justify-center shadow-lg animate-glow">
+                        <span className="text-white font-bold text-xl">L</span>
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-leap-green-neon rounded-full animate-pulse"></div>
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-bold text-leap-text-primary">Leapmotor Brasil</h1>
+                      <p className="text-leap-green-primary text-sm font-medium">LEAP AI 4.0 • Experiência Imersiva</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-leap-green-neon rounded-full animate-pulse"></div>
+                        <span className="text-leap-green-primary font-medium text-sm">IA Neural Ativa</span>
+                      </div>
+                    </div>
+
+                    <div className="px-3 py-1 bg-leap-green-soft border border-leap-green-primary/30 rounded-full backdrop-blur-sm">
+                      <span className="text-leap-green-primary text-sm font-medium">🤖 Online</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {/* Preview of main content */}
+            <main className="container mx-auto px-6 py-4">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-1">
+                  <div className="bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 h-[600px] flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-32 h-32 mx-auto bg-leap-green-primary/20 rounded-2xl mb-4"></div>
+                      <p className="text-leap-text-muted">LEA Avatar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="xl:col-span-2">
+                  <div className="h-[600px] bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 flex items-center justify-center">
+                    <p className="text-leap-text-muted text-lg">Interface de Chat</p>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+
+        {/* Welcome Overlay */}
+        <WelcomeOverlay onStart={handleStartExperience} />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-leap-dark via-leap-surface to-leap-dark">
       {/* Header Premium Compacto */}
@@ -309,7 +403,7 @@ function App() {
                 <p className="text-leap-green-primary text-sm font-medium">LEAP AI 4.0 • Experiência Imersiva</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="flex items-center gap-2">
@@ -317,7 +411,7 @@ function App() {
                   <span className="text-leap-green-primary font-medium text-sm">IA Neural Ativa</span>
                 </div>
               </div>
-              
+
               <div className="px-3 py-1 bg-leap-green-soft border border-leap-green-primary/30 rounded-full backdrop-blur-sm">
                 <span className="text-leap-green-primary text-sm font-medium">🤖 Online</span>
               </div>
@@ -330,7 +424,7 @@ function App() {
       <main className="container mx-auto px-6 py-4">
         {/* Layout Imersivo com LEA como protagonista */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          
+
           {/* LEA AVATAR - Protagonista da experiência */}
           <div className="xl:col-span-1">
             <div className="bg-leap-surface/60 backdrop-blur-xl rounded-2xl border border-leap-border p-6 relative overflow-hidden animate-fade-in">
@@ -366,7 +460,7 @@ function App() {
                   isSpeaking={isSpeaking}
                   emotion={avatarEmotion}
                   isListening={isListening}
-                  isIdle={!isSpeaking && !isListening && !isThinking}
+                  isIdle={!isSpeaking && !isListening && !isThinking && !isPreparingToSpeak}
                   size="hero"
                   isIntro={isIntroSpeech}
                 />
@@ -384,6 +478,7 @@ function App() {
                   <div className="bg-leap-surface/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-leap-border">
                     <p className="text-sm text-leap-text-secondary">
                       {isThinking ? '🧠 Pensando...' :
+                       isPreparingToSpeak ? '🎙️ Preparando voz...' :
                        isSpeaking ? '💬 Conversando' :
                        isListening ? '👂 Escutando' :
                        '✨ Pronta para ajudar'}
@@ -395,6 +490,7 @@ function App() {
                     <div className="flex items-center gap-1">
                       <div className={`w-2 h-2 rounded-full ${
                         isThinking ? 'bg-purple-400 animate-pulse' :
+                        isPreparingToSpeak ? 'bg-yellow-400 animate-pulse' :
                         isSpeaking ? 'bg-leap-green-neon animate-pulse' :
                         isListening ? 'bg-cyan-400 animate-pulse' :
                         'bg-leap-border'

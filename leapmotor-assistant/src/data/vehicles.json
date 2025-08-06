@@ -4,39 +4,138 @@
       "id": "b10",
       "name": "B10",
       "type": "SUV Compacto Elétrico",
-      "image": "https://images.unsplash.com/photo-1581540221736-45d5d7876d77?w=600&q=80",
-      "price": "R$ 199.990",
-      "autonomy": "600 km",
-      "power": "177 cv",
-      "acceleration": "9.2s (0-100km/h)",
+      "image": "https://cdn.motor1.com/images/mgl/lEqk4W/s1/leapmotor-b10.webp",
+      "price": "A partir de R$ 250.000",
+      "autonomy": "434 km",
+      "power": "218 cv",
+      "acceleration": "8.0s (0-100km/h)",
       "battery": "67.1 kWh",
+      "maxSpeed": "170 km/h",
+      "torque": "320 Nm",
+      "dimensions": {
+        "length": "4.515 mm",
+        "width": "1.885 mm",
+        "height": "1.655 mm",
+        "wheelbase": "2.735 mm"
+      },
+      "charging": {
+        "dcFast": "168 kW (30-80% em 20 min)",
+        "acSlow": "11 kW",
+        "batteryOptions": ["56.2 kWh (361 km)", "67.1 kWh (434 km)"]
+      },
+      "technology": [
+        "Sistema LEAP OS 4.0 Plus",
+        "Chip Snapdragon 8155",
+        "Apple CarPlay e Android Auto",
+        "17 sistemas ADAS"
+      ],
       "features": [
         "Design moderno e aerodinâmico",
         "Tela multimídia 14.6 polegadas",
-        "Painel digital 8.8 polegadas",
-        "Carregamento rápido DC",
-        "5 lugares confortáveis",
-        "Porta-malas espaçoso"
-      ]
+        "Teto panorâmico",
+        "Câmera 360°",
+        "Bancos em couro sintético (versão Design)",
+        "Aquecimento e ventilação dos bancos",
+        "Iluminação ambiente personalizável",
+        "Rodas de 18 polegadas",
+        "5 lugares confortáveis"
+      ],
+      "versions": ["LIFE", "DESIGN"],
+      "launchYear": 2025,
+      "warranty": "Pacotes de manutenção e garantia estendida disponíveis"
     },
     {
       "id": "c10",
       "name": "C10",
       "type": "SUV Médio Elétrico Premium",
-      "image": "https://lpwebsite-prod-s3cdn.leapmotor-international.com/public/en-cms/1740557144391C10HOME.jpg",
+      "image": "https://fleetevnews.com.au/wp-content/uploads/2024/11/Leapmotor-C10-electric-SUV.jpg",
       "price": "R$ 299.990",
       "autonomy": "420 km",
       "power": "231 cv",
       "acceleration": "7.5s (0-100km/h)",
       "battery": "69.9 kWh",
+      "maxSpeed": "180 km/h",
+      "torque": "320 Nm",
+      "charging": {
+        "dcFast": "Carregamento rápido DC",
+        "acSlow": "Carregamento AC doméstico"
+      },
+      "technology": [
+        "Sistema LEAP OS avançado",
+        "Conectividade 5G",
+        "Atualizações OTA",
+        "Sistema ADAS com 17 funções"
+      ],
       "features": [
         "Interior premium e espaçoso",
         "7 lugares opcionais",
         "Teto solar panorâmico",
         "Sistema ADAS com 17 funções",
         "Assistentes de condução avançados",
-        "Porta-malas de 435L expansível"
-      ]
+        "Porta-malas de 435L expansível",
+        "Design sofisticado",
+        "Acabamento premium"
+      ],
+      "launchYear": 2025,
+      "warranty": "Garantia competitiva no mercado"
+    },
+    {
+      "id": "c16",
+      "name": "C16",
+      "type": "SUV Grande Elétrico 6 Lugares",
+      "image": "https://img.cnevpost.com/2024/06/28212932/2024062813293230.jpg",
+      "price": "A partir de R$ 350.000 (estimado)",
+      "autonomy": "520 km",
+      "power": "288 cv",
+      "acceleration": "7.0s (0-100km/h)",
+      "battery": "67.7 kWh",
+      "torque": "360 Nm",
+      "dimensions": {
+        "length": "4.910 mm",
+        "width": "1.900 mm",
+        "height": "1.770 mm",
+        "wheelbase": "2.820 mm"
+      },
+      "seating": "6 lugares (configuração 2+2+2)",
+      "versions": {
+        "BEV": {
+          "type": "100% Elétrica",
+          "power": "288 cv",
+          "torque": "360 Nm",
+          "autonomy": "520 km"
+        },
+        "REEV": {
+          "type": "Híbrida com Extensor",
+          "power": "218 cv",
+          "torque": "320 Nm",
+          "autonomy": "230 km (modo elétrico)",
+          "extender": "Motor 1.5L 94cv (gerador)"
+        }
+      },
+      "technology": [
+        "Plataforma LEAP 3.0",
+        "Sistema Leapmotor OS",
+        "Chip Qualcomm Snapdragon 8295",
+        "Conectividade 5G",
+        "Chip nVidia Orin-X (254 TOPS)",
+        "30 sensores de condução",
+        "Atualizações OTA"
+      ],
+      "features": [
+        "SUV de 6 lugares premium",
+        "Faróis LED horizontalizados",
+        "Barra de LED conectiva",
+        "Design moderno e imponente",
+        "Piloto automático em rodovias",
+        "Troca de faixa automática",
+        "Estacionamento autônomo",
+        "Interior espaçoso e luxuoso",
+        "Acabamento premium",
+        "Tecnologia de ponta"
+      ],
+      "launchYear": 2026,
+      "warranty": "Garantia estendida disponível",
+      "platform": "LEAP 3.0"
     }
   ]
 }

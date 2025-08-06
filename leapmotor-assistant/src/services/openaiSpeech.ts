@@ -66,7 +66,7 @@ class OpenAISpeechService {
     return false;
   }
 
-  async speak(text: string, options: SpeechOptions = {}, onEnd?: () => void): Promise<void> {
+  async speak(text: string, options: SpeechOptions = {}, onEnd?: () => void, onAudioStart?: () => void): Promise<void> {
     if (!this.isInitialized) {
       console.warn('Serviço de fala não inicializado');
       if (onEnd) onEnd();
@@ -84,10 +84,10 @@ class OpenAISpeechService {
 
     // Se tem OpenAI configurado, usar TTS premium
     if (this.client) {
-      return this.speakWithOpenAI(cleanText, options, onEnd);
+      return this.speakWithOpenAI(cleanText, options, onEnd, onAudioStart);
     } else {
       // Fallback para Web Speech API
-      return this.speakWithWebAPI(cleanText, options, onEnd);
+      return this.speakWithWebAPI(cleanText, options, onEnd, onAudioStart);
     }
   }
 
@@ -106,7 +106,7 @@ class OpenAISpeechService {
       .trim();
   }
 
-  private async speakWithOpenAI(text: string, options: SpeechOptions, onEnd?: () => void): Promise<void> {
+  private async speakWithOpenAI(text: string, options: SpeechOptions, onEnd?: () => void, onAudioStart?: () => void): Promise<void> {
     if (!this.client) return;
 
     try {
@@ -136,6 +136,12 @@ class OpenAISpeechService {
       // Reproduzir áudio
       this.currentAudio = new Audio(audioUrl);
       
+      // Callback quando áudio efetivamente começa a tocar
+      this.currentAudio.onplay = () => {
+        console.log('🎵 Áudio OpenAI TTS começou a tocar - sincronizando vídeo');
+        if (onAudioStart) onAudioStart();
+      };
+      
       this.currentAudio.onended = () => {
         URL.revokeObjectURL(audioUrl); // Limpar memória
         this.currentAudio = null;
@@ -146,18 +152,19 @@ class OpenAISpeechService {
         console.error('Erro na reprodução OpenAI TTS:', error);
         URL.revokeObjectURL(audioUrl);
         this.currentAudio = null;
-        // Só usar fallback se realmente falhou
+        // Se falhar, ainda chama onAudioStart para não travar vídeo
+        if (onAudioStart) onAudioStart();
         if (onEnd) onEnd();
       };
 
       await this.currentAudio.play();
-      console.log('✅ OpenAI TTS reproduzindo com sucesso');
+      console.log('✅ OpenAI TTS iniciado - aguardando callback de sincronização');
 
     } catch (error) {
       console.error('Erro OpenAI TTS:', error);
       // Só usar fallback se realmente não conseguir usar OpenAI
       console.log('⚠️ Tentando fallback para Web Speech API...');
-      this.speakWithWebAPI(text, options, onEnd);
+      this.speakWithWebAPI(text, options, onEnd, onAudioStart);
     }
   }
 
@@ -197,7 +204,7 @@ class OpenAISpeechService {
     return Math.max(0.25, Math.min(4.0, baseSpeed));
   }
 
-  private speakWithWebAPI(text: string, options: SpeechOptions, onEnd?: () => void): void {
+  private speakWithWebAPI(text: string, options: SpeechOptions, onEnd?: () => void, onAudioStart?: () => void): void {
     if (!window.speechSynthesis) {
       if (onEnd) onEnd();
       return;
@@ -237,12 +244,20 @@ class OpenAISpeechService {
       console.log(`🔊 Usando voz Web Speech: ${preferredVoice.name} (${preferredVoice.lang})`);
     }
 
+    // Callback quando áudio Web Speech efetivamente começa
+    utterance.onstart = () => {
+      console.log('🎵 Web Speech API começou a tocar - sincronizando vídeo');
+      if (onAudioStart) onAudioStart();
+    };
+
     if (onEnd) {
       utterance.onend = onEnd;
     }
 
     utterance.onerror = (event) => {
       console.error('Erro Web Speech:', event);
+      // Se falhar, ainda chama onAudioStart para não travar vídeo
+      if (onAudioStart) onAudioStart();
       if (onEnd) onEnd();
     };
 
